@@ -1,0 +1,87 @@
+﻿@*
+    Index page for the mobile FSM extension. Displays a link to an Onsight
+    Connect call between the logged-in mobile FSM user (typically a field
+    technician) and the designated "responsible" contact for the current
+    FSM Activity.
+*@
+
+@page
+@{
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Onsight Connect</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="/css/site.css" />
+</head>
+
+<body class="body">
+    <script>
+        async function getConnectUrl() {
+            /* Forward query params on to API */
+            var url = "#";
+            const response = await fetch("/api/v1/fsm/connection" + window.location.search, {
+                method: "GET",
+                mode: "cors",
+                cache: "no-cache"
+            });
+
+            if (response.ok) {
+                url = await response.text();
+            } else {
+                showMessage("Unavailable");
+            }
+
+            return url;
+        }
+
+        function showMessage(msg) {
+            const message = document.querySelector("#message");
+            message.innerHTML = msg;
+            message.style.visibility = msg ? "visible" : "hidden";
+
+            const table = document.querySelector("#expertsTable");
+            if (table) {
+                table.style.visibility = msg ? "hidden" : "visible";
+            }
+        }
+
+        async function main() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const toFirst = urlParams.get("toFirst");
+            const toLast = urlParams.get("toLast");
+            const expertLink = document.querySelector("#contact_expert");
+
+            if (toFirst && toLast) {
+                expertLink.innerHTML = toFirst + ' ' + toLast;
+            }
+            const url = await getConnectUrl();
+            expertLink.href = url;
+        }
+
+        window.onload = async () => {
+            await main();
+        };
+    </script>
+
+    <div>
+        <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
+        <div class="heading center">REMOTE EXPERT ASSISTANCE</div>
+
+        <div id="content">
+            <div style="padding: 0px 0px 10px 0px;">Select a link below to initiate an Onsight Connect call with individuals assigned to this activity.</div>
+
+            <div class="subheading">ASSIGNED EXPERT/HELPDESK RESOURCE(S)</div>
+            <span id="message" />
+            <table id="contacts_table" width="100%">
+                <tr>
+                    <td><a id="contact_expert" class="contact-link">Contact Expert</a></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,305 @@
+﻿@*
+    This is the index page for the project. Its job is to display hyperlinks to
+    Onsight Connect calls between the logged-in FSM user (typically a dispatcher)
+    and one or more contacts defined within the selected FSM Activity.
+
+    A token is required to communicate with the backend, and if not contained in
+    the 't' query parameter, is obtained via a call to /auth/provider which initiates
+    an OpenID Connect authorization, as configured by the end-user.
+*@
+
+@page
+@{
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Onsight Connect</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/systemjs/4.1.0/system.min.js"
+            integrity="sha256-i+j3ZmMaI9nPuzasKbNrT3evNnUewPBf5p9UEJdr2zA=" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/fsm-shell"></script>
+    <link rel="stylesheet" type="text/css" href="/css/site.css" />
+</head>
+
+<body class="body">
+    <script>
+        const { ShellSdk, SHELL_EVENTS } = FSMShell;
+        const shellSdk = ShellSdk.init(window.parent, "*");
+        sessionStorage.removeItem("isRunningWithinShell");
+        var receivedAnswerFromShell = false;
+        var cannotLogIn = false;
+        const PLEASE_CONTACT_LIBRESTREAM_MSG = "Please contact Librestream to configure your use of the FSM extension.";
+
+        console.log("Loading ONSIGHT-CONNECT extension...");
+
+        if (!ShellSdk.isInsideShell()) {
+            showUI("noShell");
+        } else {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromEmail = urlParams.get("from");
+            const token = urlParams.get("t");
+
+            if (fromEmail) {
+                sessionStorage.setItem("fromEmail", fromEmail);
+            }
+            if (token) {
+                sessionStorage.setItem("token", token);
+            }
+
+            shellSdk.emit(SHELL_EVENTS.Version1.REQUIRE_CONTEXT, {
+                clientIdentifier: "onsight-connect-plugin",
+            });
+
+            shellSdk.on(SHELL_EVENTS.Version1.REQUIRE_CONTEXT, async (event) => {
+                if (cannotLogIn) {
+                    showUI("showMessage", PLEASE_CONTACT_LIBRESTREAM_MSG);
+                    return;
+                }
+
+                receivedAnswerFromShell = true;
+                const {
+                    cloudHost,
+                    accountId,
+                    companyId,
+                    userId
+                } = JSON.parse(event);
+
+                sessionStorage.setItem("cloudHost", cloudHost);
+                sessionStorage.setItem("isRunningWithinShell", true);
+                sessionStorage.setItem("accountId", accountId);
+                sessionStorage.setItem("companyId", companyId);
+                sessionStorage.setItem("userId", userId);
+                sessionStorage.removeItem("activityId");
+
+                if (isLoggedIn()) {
+                    showUI("showMessage", "No Activity selected.");
+                } else {
+                    showUI("loggedOut");
+                }
+            });
+
+            shellSdk.onViewState("activityID", async id => {
+                if (cannotLogIn) {
+                    showUI("showMessage", PLEASE_CONTACT_LIBRESTREAM_MSG);
+                    return;
+                }
+
+                sessionStorage.setItem("activityId", id);
+                if (isLoggedIn()) {
+                    if (id) {
+                        const connections = await getConnections(id);
+                        showUI("showContacts", connections);
+                    }
+                    else {
+                        showUI("showMessage", "No Activity selected.");
+                    }
+                } else {
+                    showUI("loggedOut");
+                }
+            });
+        }
+
+        function isLoggedIn() {
+            return Boolean(sessionStorage.getItem("fromEmail"));
+        }
+
+        function idpLogin() {
+            const cloudHost = sessionStorage.getItem("cloudHost");
+            const accountId = sessionStorage.getItem("accountId");
+            const companyId = sessionStorage.getItem("companyId");
+            const userId = sessionStorage.getItem("userId");
+
+            if (accountId && companyId && userId) {
+                const data = new URLSearchParams();
+                data.append("cloudHost", cloudHost);
+                data.append("accountId", accountId);
+                data.append("companyId", companyId);
+                data.append("userId", userId);
+
+                fetch("/auth/provider", {
+                    method: "post",
+                    body: data
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            response.text().then(idpUrl => {
+                                window.location.href = idpUrl;
+                            });
+                        }
+                        else {
+                            console.log(PLEASE_CONTACT_LIBRESTREAM_MSG);
+                            cannotLogIn = true;
+                            showUI("showMessage", PLEASE_CONTACT_LIBRESTREAM_MSG);
+                        }
+                    })                    
+                    .catch(reason => {
+                        console.log("Failed to contact auth provider: " + reason);
+                        cannotLogIn = true;
+                    });
+            }
+        }
+
+        async function getConnections(activityId) {
+            /* Forward query params on to API */
+            var urls = [];
+            if (!isLoggedIn()) {
+                return urls;
+            }
+
+            const cloudHost = sessionStorage.getItem("cloudHost");
+            const accountId = sessionStorage.getItem("accountId");
+            const companyId = sessionStorage.getItem("companyId");
+            const userId = sessionStorage.getItem("userId");
+            const fromEmail = sessionStorage.getItem("fromEmail");
+            const token = sessionStorage.getItem("token");
+
+            if (!activityId) {
+                showUI("showMessage", "No Activity selected.");
+                return urls;
+            }
+
+            showUI("showMessage", "Loading contacts...");
+
+            const response = await fetch("/api/v1/fsm/connections?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId + "&u=" + userId + "&from=" + fromEmail, {
+                method: "GET",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                },
+                cache: "no-cache"
+            });
+
+            if (response.status === 401) {
+                /* Forbidden; assume this means that our existing token is no longer valid and force a re-login. */
+                sessionStorage.removeItem("token");
+                sessionStorage.removeItem("fromEmail");
+                location.reload();
+            } else if (response.ok) {
+                urls = await response.json();
+            } else {
+                console.error("Failed to fetch connections: " + response.statusText);
+                showUI("showMessage", "Contacts unavailable");
+            }
+
+            return urls;
+        }
+
+        function showUI(state, data) {
+            const login = document.querySelector("#login");
+            const noShell = document.querySelector("#noShell");
+            const message = document.querySelector("#message");
+            const content = document.querySelector("#content");
+
+            if (!login) {
+                return;
+            }
+
+            login.style.display = "none";
+            noShell.style.display = "none";
+            content.style.display = "none";
+            message.style.display = "none";
+
+            switch (state) {
+                case "noShell":
+                    noShell.style.display = "block";
+                    break;
+                case "loggedOut":
+                    login.style.display = "block";
+                    idpLogin();
+                    break;
+                case "showMessage":
+                    message.style.display = "block";
+                    message.getElementsByTagName("span")[0].innerHTML = data;
+                    break;
+                case "showContacts":
+                    {
+                        const fieldTechs = data.filter(c => c.role === "FieldTech");
+                        const experts = data.filter(c => c.role !== "FieldTech");
+
+                        content.style.display = "block";
+                        updateContactsTable(document.getElementById("fieldTechsTable"), fieldTechs);
+                        updateContactsTable(document.getElementById("expertsTable"), experts);
+                        break;
+                    }
+            }
+        }
+
+        async function openConnection(name, url) {
+            if (!url) {
+                return;
+            }
+
+            fetch(url, {
+                method: "get"
+            })
+                .then(response => response.text())
+                .then(url => {
+                    window.open(url);
+                })
+                .catch(reason => console.log("Failed to open connection to " + name + ": " + reason));
+        }
+
+        function updateContactsTable(table, contacts) {
+            if (!table || !contacts) {
+                return;
+            }
+
+            /* Delete old table rows */
+            while (table.rows.length > 0) {
+                table.deleteRow(0);
+            }
+
+            /* Insert new table rows */
+            for (var i = 0; i < contacts.length; i++) {
+                const row = table.insertRow(table.rows.length);
+                const name = row.insertCell(0);
+                var clickAttrs = 'class="non-link"';
+                if (contacts[i].connection) {
+                    clickAttrs = 'class="contact-link" onclick="openConnection(\'' + contacts[i].name + '\', \'' + contacts[i].connection + '\')"';
+                }
+                name.innerHTML = '<a href="#" ' + clickAttrs + '>' + contacts[i].name + '</a>';
+
+                if (contacts[i].title) {
+                    name.innerHTML += ' - ' + contacts[i].title;
+                }
+            }
+
+            if (contacts.length == 0) {
+                const row = table.insertRow(0);
+                const msg = row.insertCell(0);
+                msg.innerHTML = "<span>None available</span>";
+            }
+        }</script>
+
+    <div>
+        <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
+        <div class="heading center">REMOTE EXPERT ASSISTANCE</div>
+
+        <div id="login" style="display: none; padding-top: 50px;">
+            <span class="center">Loading...</span>
+        </div>
+        <div id="noShell" class="center" style="display: none;">
+            <p>Extension needs to run inside Shell</p>
+        </div>
+        <div id="message" class="center" style="display: none; padding-top: 50px;">
+            <span>&nbsp;</span>
+        </div>
+        <div id="content" style="display: none;">
+            <div style="padding: 0px 0px 10px 0px;">Select a link below to initiate an Onsight Connect call with individuals assigned to this activity.</div>
+
+            <div class="subheading">ASSIGNED FIELD RESOURCE(S)</div>
+            <table id="fieldTechsTable" width="100%">
+                <tr></tr>
+            </table>
+            <div class="subheading">ASSIGNED EXPERT/HELPDESK RESOURCE(S)</div>
+            <table id="expertsTable" width="100%">
+                <tr></tr>
+            </table>
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+﻿@font-face {
+    font-family: TradeGothicBold20;
+    src: url("../fonts/TradeGothicLTStd-BdCn20.otf") format("opentype");
+}
+
+@font-face {
+    font-family: TradeGothic18;
+    src: url("../fonts/TradeGothicLTStd-Cn18.otf") format("opentype");
+}
+
+.heading {
+    color: #00a3e0;
+    font-family: TradeGothicBold20;
+    font-size: 22px;
+    padding: 10px 0px;
+}
+
+.subheading {
+    color: #ffffff;
+    font-family: TradeGothicBold20;
+    padding: 15px 0px 0px 0px;
+}
+
+.body {
+    color: #ffffff;
+    background: #003963;
+    font-family: TradeGothic18;
+    padding: 0px 10px;
+}
+
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.contact-link {
+    padding: 10px 0px;
+    color: #ffffff;
+}
+
+.non-link {
+    color: #ffffff;
+    text-decoration: none;
+    cursor: text;
+}
