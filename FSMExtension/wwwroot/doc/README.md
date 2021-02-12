@@ -19,7 +19,7 @@
           and therefore cannot call themselves.
         - To be reachable by Onsight, the Contact's and/or Responsibles' email addresses must be part of the customer's Onsight domain
           - Onsight external contacts are not currently supported, as there is no defined way of getting
-          - that external contact's SIP address from FSM.
+            that external contact's SIP address from FSM.
     - **(FSM Web):** The FSM account administrator must generate a Client ID/Client Secret pair for each FSM coresystems datacenter
       in which their FSM app is hosted. These credentials will be used by the Onsight extension to communicate
       with the FSM APIs.
@@ -74,7 +74,7 @@
 
    #### Web
 
-   At this time, in order to complete installation of the Onsight extension with the FSM web app, the
+   In order to complete installation of the Onsight extension with the FSM web app, the
    customer must contact Librestream to have their FSM credentials added to the extension's database. Without
    this configuration, the FSM web app will not work with the FSM extension.
 
