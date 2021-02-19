@@ -3,7 +3,7 @@
 #### Notes
    * The term "customer" refers to the Onsight customer wishing to integrate their Onsight Connect account with their SAP FSM application.
    * The variable *\{fsmHost\}* refers to the datacenter where your FSM application is deployed.
-     * e.g., "eu.coresystems.net" or "us.coresystems.net"
+     * e.g., "eu.coresuite.com" or "us.coresuite.com"
 
 ---
 
@@ -42,7 +42,7 @@
    - Installation can be performed either of two ways:
         1) From the SAP FSM extension catalog: https://{fsmHost}/shell/#/foundational-services/extension-management/directory, **OR**
         2) Manaully, by clicking the "Add Extension" button and choosing "Manual" installation: https://{fsmHost}/shell/#/foundational-services/extension-management/extensions
-            - For the Extension Access URL, use: https://sap-connect-cogswellsprockets.azurewebsites.net
+            - For the Extension Access URL, use: https://fsm-extension-app.azurewebsites.net
 
 ---
 
@@ -67,8 +67,8 @@
    4) The Workflow Step's Configuration should be set to the following:
          ```
         {
-           "android": {"url": "https://sap-connect-cogswellsprockets.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"},
-           "ios": {"url": "https://sap-connect-cogswellsprockets.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"}
+           "android": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"},
+           "ios": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"}
         }
          ```
 
