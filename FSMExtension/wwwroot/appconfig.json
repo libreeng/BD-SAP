@@ -2,7 +2,7 @@
     "name": "onsight-connect",
     "provider": "Librestream",
     "description": "Librestream Onsight Connect",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "icon": "https://fsm-extension-app.azurewebsites.net/images/onsight-logo.svg",
     "useShellSDK": true,
     "helmChartVersion": "3.4.0",
