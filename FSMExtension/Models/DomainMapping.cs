@@ -17,6 +17,14 @@ namespace FSMExtension.Models
         [JsonProperty("onsightDomain")]
         public string OnsightDomain { get; set; }
 
+        /// <summary>
+        /// The email user names of all registered users of the extension.
+        /// This assumes that the OnsightDomain is the same as each user's
+        /// email domain.
+        /// </summary>
+        [JsonProperty("emailUsers")]
+        public IEnumerable<string> EmailUsers { get; set; }
+
         [JsonProperty("onsightApiKey")]
         public string OnsightApiKey { get; set; }
 

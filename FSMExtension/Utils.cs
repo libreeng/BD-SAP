@@ -21,16 +21,29 @@ namespace FSMExtension
             return OnsightConnectPlatform.PC;
         }
 
-        public static string ExtractEmailDomain(string emailAddress)
+        public static bool ExtractEmailParts(string emailAddress, out string userName, out string domain)
         {
+            userName = null;
+            domain = null;
+
             if (string.IsNullOrEmpty(emailAddress))
-                return null;
+                return false;
 
             var index = emailAddress.IndexOf('@');
             if (index <= 0)
+                return false;
+
+            userName = emailAddress[0..index];
+            domain = emailAddress[(index + 1)..];
+            return true;
+        }
+
+        public static string ExtractEmailDomain(string emailAddress)
+        {
+            if (!ExtractEmailParts(emailAddress, out var _, out var domain))
                 return null;
 
-            return emailAddress.Substring(index + 1);
+            return domain;
         }
     }
 }

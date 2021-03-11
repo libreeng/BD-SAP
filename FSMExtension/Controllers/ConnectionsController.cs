@@ -48,10 +48,8 @@ namespace FSMExtension.Controllers
             [FromQuery] string to,
             [FromQuery] string meta)
         {
-            var emailDomain = Utils.ExtractEmailDomain(from);
-
             // Try finding the Onsight API Key corresponding to the 'from' email address
-            var domainMapping = await DomainRepository.GetFromDomainAsync(emailDomain);
+            var domainMapping = await DomainRepository.GetFromUserEmailAsync(from);
             if (domainMapping == null)
                 return NotFound();
 

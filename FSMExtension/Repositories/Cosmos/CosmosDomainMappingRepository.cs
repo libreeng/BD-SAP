@@ -19,14 +19,18 @@ namespace FSMExtension.Repositories.Cosmos
 
         private Container DomainMappings { get; }
 
-        public async Task<DomainMapping> GetFromDomainAsync(string onsightDomain)
+        public async Task<DomainMapping> GetFromUserEmailAsync(string userEmail)
         {
-            if (string.IsNullOrEmpty(onsightDomain))
+            if (string.IsNullOrEmpty(userEmail))
+                return null;
+
+            if (!Utils.ExtractEmailParts(userEmail, out var userName, out var onsightDomain))
                 return null;
 
             DomainMapping mapping = null;
-            var queryDef = new QueryDefinition("SELECT * FROM domain_mapping dm WHERE dm.onsightDomain = @domain")
-                .WithParameter("@domain", onsightDomain);
+            var queryDef = new QueryDefinition("SELECT * FROM domain_mapping dm WHERE dm.onsightDomain = @domain AND ARRAY_CONTAINS(dm.emailUsers, @userName)")
+                .WithParameter("@domain", onsightDomain)
+                .WithParameter("@userName", userName);
 
             using var iter = DomainMappings.GetItemQueryIterator<DomainMapping>(queryDef);
             if (iter.HasMoreResults)
@@ -39,6 +43,9 @@ namespace FSMExtension.Repositories.Cosmos
             return mapping;
         }
 
+        // TODO: this doesn't perform checking to ensure that a specific user is registered
+        // to use this extension. Instead, if they simply have a matching FSM account ID, they
+        // will have access.
         public async Task<DomainMapping> GetFromFsmAccountIdAsync(string fsmAccountId)
         {
             DomainMapping mapping = null;

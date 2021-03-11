@@ -23,6 +23,10 @@ Each entry in the domain_mapping table represents a Librestream customer integra
 ```
     "id": "b114da8e-cddd-4985-b214-d19b5d98397c",
     "onsightDomain": "example.com",
+    "emailUsers": [
+        "user.one",
+        "user.two"
+    ],
     "onsightApiKey": "...",
     "sap_fsm": {
         "accountId": "12345",
@@ -53,6 +57,7 @@ Each entry in the domain_mapping table represents a Librestream customer integra
 | :---------- | :---------- |
 | id                   | Auto-generated internal mapping ID. |
 | onsightDomain        | The customer's Onsight Connect domain |
+| emailUsers           | The list of users (by email name) registered to use the extension. The extension assumes each registered user's email domain matches their Onsight domain.  |
 | onsightApiKey        | The customer's Onsight Connect API Key. |
 | sap_fsm              | The customer's FSM account details. |
 | &nbsp;&nbsp;&nbsp;&nbsp;accountId    | The customer's FSM account identifier. Required to call the FSM APIs. |
