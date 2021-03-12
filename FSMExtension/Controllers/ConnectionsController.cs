@@ -105,34 +105,11 @@ namespace FSMExtension.Controllers
             var contact = await FsmApiService.GetContactAsync(cloudHost, company, activity.Contact);
             if (contact != null)
             {
-                var toDomain = Utils.ExtractEmailDomain(contact.EmailAddress);
-                var isMemberOfDomain = string.Equals(fromDomain, toDomain, StringComparison.InvariantCultureIgnoreCase);
-
                 contacts.Add(new Contact
                 {
                     Name = $"{contact.FirstName} {contact.LastName}",
-                    Title = isMemberOfDomain ? contact.PositionName : "not in domain",
+                    Title = contact.PositionName,
                     Role = ContactRole.Expert,
-                    Connection = isMemberOfDomain ? Url.Action(
-                        nameof(GetConnection),
-                        "Connections",
-                        new
-                        {
-                            from = fromEmail,
-                            to = contact.EmailAddress,
-                            meta = $"eqp:{activity.EquipmentId};act:{activityId}"
-                        }
-                    ) : null
-                });
-            }
-
-            // Get responsible's details from activity.responsibles[]
-            var responsibles = await FsmApiService.GetPersonsAsync(cloudHost, company, activity.Responsibles);
-            contacts.AddRange(responsibles.Select(r => new Contact
-                {
-                    Name = $"{r.FirstName} {r.LastName}",
-                    Title = r.PositionName ?? r.JobTitle,
-                    Role = ContactRole.FieldTech,
                     Connection = Url.Action(
                         nameof(GetConnection),
                         "Connections",
@@ -143,8 +120,35 @@ namespace FSMExtension.Controllers
                             meta = $"eqp:{activity.EquipmentId};act:{activityId}"
                         }
                     )
-                })
-            );
+                });
+            }
+
+            // Get responsible's details from activity.responsibles[]
+            var responsibles = await FsmApiService.GetPersonsAsync(cloudHost, company, activity.Responsibles);
+            contacts.AddRange(responsibles.Select(r =>
+            {
+                return new Contact
+                {
+                    Name = $"{r.FirstName} {r.LastName}",
+                    Title = r.PositionName ?? r.JobTitle,
+                    Role = ContactRole.FieldTech,
+                    Connection = Url.Action(
+                        nameof(GetConnection),
+                        "Connections",
+                        new
+                        {
+                            from = fromEmail,
+                            to = r.EmailAddress,
+                            meta = $"eqp:{activity.EquipmentId};act:{activityId}"
+                        }
+                    )
+                };
+            }));
+
+            foreach (var c in contacts)
+            {
+                Logger.LogDebug($"/connections generated URL '{c.Connection}'");
+            }
 
             return Ok(contacts);
         }

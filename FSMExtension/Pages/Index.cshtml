@@ -236,7 +236,14 @@
             })
                 .then(response => response.text())
                 .then(url => {
-                    window.open(url);
+                    if (url.includes("https://tools.ietf.org/html/rfc7231")) {
+                        // The URL returned by the backend indicates that Onsight cannot call the contact
+                        alert("There was a problem trying to contact " + name + ". Please use the Onsight Platform Manager to ensure this person is a member of your Onsight domain and try again.");
+                    }
+                    else {
+                        // Onsight URL looks legit; open a new browser window to launch Connect app.
+                        window.open(url);
+                    }
                 })
                 .catch(reason => console.log("Failed to open connection to " + name + ": " + reason));
         }
