@@ -48,8 +48,11 @@ namespace FSMExtension.Controllers
             [FromQuery] string to,
             [FromQuery] string meta)
         {
+            Logger.LogDebug($"GetConnection: from={from}, to={to}, meta={meta}");
+
             // Try finding the Onsight API Key corresponding to the 'from' email address
             var domainMapping = await DomainRepository.GetFromUserEmailAsync(from);
+            Logger.LogDebug($"GetConnection get domain_mapping success = {domainMapping != null}");
             if (domainMapping == null)
                 return NotFound();
 
