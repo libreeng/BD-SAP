@@ -1,3 +1,6 @@
+PublishProfiles/
+ServiceDependencies/
+
 # globs
 Makefile.in
 *.userprefs
