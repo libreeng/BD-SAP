@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -88,7 +87,6 @@ namespace FSMExtension.Controllers
             [FromQuery(Name = "u")] string userId,
             [FromQuery(Name = "from")] string fromEmail)
         {
-            var fromDomain = Utils.ExtractEmailDomain(fromEmail);
             var companyIdentifier = new FsmUserId(cloudHost, accountId, companyId, userId);
 
             // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
@@ -104,29 +102,12 @@ namespace FSMExtension.Controllers
 
             var contacts = new List<Contact>();
 
-            // Get contact details from activity.contact
-            var contact = await FsmApiService.GetContactAsync(cloudHost, company, activity.Contact);
-            if (contact != null)
-            {
-                contacts.Add(new Contact
-                {
-                    Name = $"{contact.FirstName} {contact.LastName}",
-                    Title = contact.PositionName,
-                    Role = ContactRole.Expert,
-                    Connection = Url.Action(
-                        nameof(GetConnection),
-                        "Connections",
-                        new
-                        {
-                            from = fromEmail,
-                            to = contact.EmailAddress,
-                            meta = $"eqp:{activity.EquipmentId};act:{activityId}"
-                        }
-                    )
-                });
-            }
+            // Get remote expert (there are two different options)
+            var remoteExpert = await GetRemoteExpertAsync(cloudHost, company, activity, fromEmail);
+            if (remoteExpert != null)
+                contacts.Add(remoteExpert);
 
-            // Get responsible's details from activity.responsibles[]
+            // Get responsible's details from activity.responsibles[]. This is the assigned field worker.
             var responsibles = await FsmApiService.GetPersonsAsync(cloudHost, company, activity.Responsibles);
             contacts.AddRange(responsibles.Select(r =>
             {
@@ -154,6 +135,62 @@ namespace FSMExtension.Controllers
             }
 
             return Ok(contacts);
+        }
+
+        /// <summary>
+        /// Fetches contact information about the Activity's remote expert. The expert is either:
+        ///     a) designated using custom fields associated with the Activity's equipment, or
+        ///     b) the Activity's Contact.
+        /// </summary>
+        /// <param name="cloudHost"></param>
+        /// <param name="company"></param>
+        /// <param name="activity"></param>
+        /// <param name="fromEmail"></param>
+        /// <returns></returns>
+        private async Task<Contact> GetRemoteExpertAsync(string cloudHost, CompanyInfo company, Dtos.FsmActivity activity, string fromEmail)
+        {
+            var expertName = string.Empty;
+            var expertEmail = string.Empty;
+            var expertTitle = string.Empty;
+
+            // Use Equipment's designated expert, if available
+            var equipmentContact = await FsmApiService.GetEquipmentContactAsync(cloudHost, company, activity.EquipmentId);
+            if (equipmentContact != null)
+            {
+                expertName = equipmentContact.FirstName;
+                expertEmail = equipmentContact.EmailAddress;
+            }
+
+            if (string.IsNullOrEmpty(expertEmail))
+            {
+                // Otherwise, fall back to using the Activity's Contact
+                var activityContact = await FsmApiService.GetContactAsync(cloudHost, company, activity.Contact);
+                expertEmail = activityContact.EmailAddress;
+
+                // Bail out if we don't have an "expert" associated with the Activity
+                if (string.IsNullOrEmpty(expertEmail))
+                    return null;
+
+                expertName = $"{activityContact.FirstName} {activityContact.LastName}";
+                expertTitle = activityContact.PositionName;
+            }
+
+            return new Contact
+            {
+                Name = expertName,
+                Title = expertTitle,
+                Role = ContactRole.Expert,
+                Connection = Url.Action(
+                        nameof(GetConnection),
+                        "Connections",
+                        new
+                        {
+                            from = fromEmail,
+                            to = expertEmail,
+                            meta = $"eqp:{activity.EquipmentId};act:{activity.Id}"
+                        }
+                    )
+            };
         }
     }
 }

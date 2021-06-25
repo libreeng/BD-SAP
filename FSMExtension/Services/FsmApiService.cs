@@ -2,6 +2,7 @@
 using FSMExtension.Models;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -9,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,6 +25,7 @@ namespace FSMExtension.Services
         Task<FsmContact> GetContactAsync(string cloudHost, CompanyInfo company, string contactId);
         Task<FsmPerson[]> GetPersonsAsync(string cloudHost, CompanyInfo company, params string[] personIds);
         Task<FsmUser> GetUserAsync(string cloudHost, CompanyInfo company, string userId);
+        Task<FsmContact> GetEquipmentContactAsync(string cloudHost, CompanyInfo company, string equipmentId);
     }
 
     /// <summary>
@@ -45,13 +48,17 @@ namespace FSMExtension.Services
         private readonly int ActivityVersion = 37;
         private readonly int ContactVersion = 17;
         private readonly int PersonVersion = 24;
+        private readonly int EquipmentVersion = 23;
+        private const string OnsightRemoteExpertName = "OnsightRemoteExpertName";
+        private const string OnsightRemoteExpertEmail = "OnsightRemoteExpertEmail";
 
         private readonly MemoryCache cache;
 
 
-        public FsmApiService(HttpClient httpClient, IConfiguration config)
+        public FsmApiService(HttpClient httpClient, IConfiguration config, ILogger<FsmApiService> logger)
         {
             HttpClient = httpClient;
+            Logger = logger;
 
             var cacheOptions = new MemoryCacheOptions();
             cache = new MemoryCache(cacheOptions);
@@ -66,16 +73,18 @@ namespace FSMExtension.Services
 
         private HttpClient HttpClient { get; }
 
+        private ILogger<FsmApiService> Logger { get; }
+
         public async Task<FsmActivity> GetActivityAsync(string cloudHost, CompanyInfo company, string activityId)
         {
             var request = await CreateMessageAsync(cloudHost, company, "Activity", activityId, ActivityVersion);
-            return await GetDto<FsmActivity>(request, "Activity");
+            return await GetDtoAsync<FsmActivity>(request, "Activity");
         }
 
         public async Task<FsmContact> GetContactAsync(string cloudHost, CompanyInfo company, string contactId)
         {
             var request = await CreateMessageAsync(cloudHost, company, "Contact", contactId, ContactVersion);
-            return await GetDto<FsmContact>(request, "Contact");
+            return await GetDtoAsync<FsmContact>(request, "Contact");
         }
 
         public async Task<FsmPerson[]> GetPersonsAsync(string cloudHost, CompanyInfo company, params string[] personIds)
@@ -86,7 +95,7 @@ namespace FSMExtension.Services
             {
                 var personId = personIds[i];
                 var request = await CreateMessageAsync(cloudHost, company, "Person", personId, PersonVersion);
-                tasks[i] = GetDto<FsmPerson>(request, "Person");
+                tasks[i] = GetDtoAsync<FsmPerson>(request, "Person");
             }
 
             return await Task.WhenAll(tasks);
@@ -110,10 +119,9 @@ namespace FSMExtension.Services
             return JsonConvert.DeserializeObject<FsmUser>(json);
         }
 
-        private async Task<T> GetDto<T>(HttpRequestMessage request, string dtoName)
+        private async Task<T> GetDtoAsync<T>(HttpRequestMessage request, string dtoName)
         {
             var response = await HttpClient.SendAsync(request);
-
             if (!response.IsSuccessStatusCode)
                 return default;
 
@@ -139,10 +147,11 @@ namespace FSMExtension.Services
         }
 
         private async Task<HttpRequestMessage> CreateMessageAsync(
-            HttpMethod method, 
+            HttpMethod method,
             Uri requestUri,
             string cloudHost,
-            CompanyInfo company)
+            CompanyInfo company,
+            HttpContent body = null)
         {
             var install = company.Account.FindInstall(cloudHost);
             var message = new HttpRequestMessage(method, requestUri);
@@ -153,6 +162,7 @@ namespace FSMExtension.Services
             message.Headers.Add("X-Client-Version", install.ClientVersion);
             message.Headers.Add("X-Account-ID", company.Account.Id);
             message.Headers.Add("X-Company-ID", company.Id);
+            message.Content = body;
 
             return message;
         }
@@ -187,6 +197,31 @@ namespace FSMExtension.Services
 
             cache.Set(cacheKey, token, cacheEntryOptions);
             return token;
+        }
+
+        public async Task<FsmContact> GetEquipmentContactAsync(string cloudHost, CompanyInfo company, string equipmentId)
+        {
+            var queryApiRequest = new Uri($"https://{cloudHost}/api/query/v1?dtos=Equipment.{EquipmentVersion}");
+            var body = JsonContent.Create(new { query = $"SELECT eqp.id, eqp.code, eqp.udf.OnsightRemoteExpertEmail, eqp.udf.OnsightRemoteExpertName FROM Equipment eqp WHERE eqp.id = '{equipmentId}'" });
+            var message = await CreateMessageAsync(HttpMethod.Post, queryApiRequest, cloudHost, company, body);
+
+            var eqpResult = await GetDtoAsync<FsmEquipmentResult>(message, "eqp");
+            if (eqpResult == null || eqpResult.UdfValues == null || eqpResult.UdfValues.Count == 0)
+                return null;
+
+            // Map each user-defined field by its name
+            var udfMap = eqpResult.UdfValues.ToDictionary(udf => udf.Name);
+
+            // Our FSM custom fields are NOT of type FsmContact (FSM UI isn't user-friendly in listing Contacts for user),
+            // so we need to instantiate our own FsmContact from the individual custom fields we do have.
+            return new FsmContact
+            {
+                FirstName = udfMap.GetValueOrDefault(OnsightRemoteExpertName)?.Value ?? string.Empty,
+                LastName = string.Empty,
+                EmailAddress = udfMap.GetValueOrDefault(OnsightRemoteExpertEmail)?.Value ?? string.Empty,
+                Code = string.Empty,
+                PositionName = string.Empty
+            };
         }
     }
 }

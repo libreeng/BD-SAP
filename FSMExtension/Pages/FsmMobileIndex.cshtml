@@ -57,6 +57,9 @@
             if (toFirst && toLast) {
                 expertLink.innerHTML = toFirst + ' ' + toLast;
             }
+            else if (toFirst) {
+                expertLink.innerHTML = toFirst;
+            }
             const url = await getConnectUrl();
             expertLink.href = url;
         }

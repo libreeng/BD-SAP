@@ -7,6 +7,9 @@ namespace FSMExtension.Dtos
     /// </summary>
     public class FsmActivity
     {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+
         [JsonProperty("code")]
         public string Code { get; set; }
 

@@ -48,7 +48,29 @@
 
 ## Post-Install Configuration
 
-   #### Mobile
+   ### Custom Fields (optional)  
+
+   By default, the Onsight Connect extension will assume that the current Activity's Contact field is also the designated Remote Expert. In other words, this Contact will be callable by both the dispatcher (from the web UI) and the field worker (from the mobile UI). If this is not desirable, the extension can be configured to use custom fields, associated with the Activity's Equipment, in determining who the Remote Expert is, as noted in the following section.
+
+   #### Defining Custom Fields in the Equipment DTO
+
+   - Using FSM's administration pages, locate the Custom Fields page at *https://{fsmHost}/admin/accounts/{accountId}/companies/{companyId}/udfMetas*.
+   - Click the Create button.
+   - Enter the following values (using defaults for everything else) and click Save. This field will hold the Remote Expert's email address:
+      * **Name**: OnsightRemoteExpertEmail
+      * **Description**: Onsight Remote Expert Email
+      * **Object Type**: Equipment
+      * **Type**: String
+   - Click Create again, using these values for the second field. This will be used to display the Remote Expert's name:
+      * **Name**: OnsightRemoteExpertName
+      * **Description**: Onsight Remote Expert Name
+      * **Object Type**: Equipment
+      * **Type**: String
+   - You will need to edit any existing Equipment by setting values for these two custom fields. Likewise, any new Equipment that is subsequently added will also need these fields to be set
+   to the Remote Expert's email address and name, respectively.
+
+
+   ### Mobile
 
    The FSM mobile app (available for download from the app stores) can be customized to integrate Onsight Connect.
    This is done by adding a new step to the field technician's Service Workflow process. At this time,
@@ -64,7 +86,15 @@
          ![Edit Service Workflow](../images/edit-service-workflow.png)
 
    3) The new Workflow Step should be set to a Screen Type of "External application".
-   4) The Workflow Step's Configuration should be set to the following:
+   4) The Workflow Step's Configuration should be set to one of the two following options, depending on where the designated Remote Expert information is located:
+        - Option 1: when the Remote Expert is associated with the Activity's Equipment (see above for details):
+         ```
+        {
+           "android": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertEmail').value}&toFirst=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertName').value}&meta=eqp:${activity.equipment.code};act:${activity.code}"},
+           "ios": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertEmail').value}&toFirst=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertName').value}&meta=eqp:${activity.equipment.code};act:${activity.code}"}
+        }
+         ```
+        - Option 2: when the Remote Expert is the Activity's Contact:
          ```
         {
            "android": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"},
@@ -72,7 +102,8 @@
         }
          ```
 
-   #### Web
+
+   ### Web
 
    In order to complete installation of the Onsight extension with the FSM web app, the
    customer must contact Librestream to have their FSM credentials added to the extension's database. Without

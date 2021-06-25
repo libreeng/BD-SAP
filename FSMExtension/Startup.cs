@@ -54,20 +54,15 @@ namespace FSMExtension
 
             services.AddHttpContextAccessor();
 
-            var httpClient = new HttpClient();
+            services.AddSingleton<HttpClient>();
             var mappingsContainerName = Configuration.GetValue<string>("CosmosDB:MappingsContainer");
             var mappingsContainer = OpenContainer(mappingsContainerName);
             var domainMappingRepo = new CosmosDomainMappingRepository(mappingsContainer);
             services.AddSingleton<IDomainMappingRepository>(domainMappingRepo);
 
-            services.AddSingleton<IFsmApiService>(new FsmApiService(httpClient, Configuration));
-
-            var openIdService = new OpenIdService(httpClient);
-            services.AddSingleton<IOpenIdService>(openIdService);
-
-
-            var onsightConnectService = new OnsightConnectService(httpClient);
-            services.AddSingleton<IOnsightConnectService>(onsightConnectService);
+            services.AddSingleton<IFsmApiService, FsmApiService>();
+            services.AddSingleton<IOpenIdService, OpenIdService>();
+            services.AddSingleton<IOnsightConnectService, OnsightConnectService>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
