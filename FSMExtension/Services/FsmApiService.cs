@@ -25,7 +25,7 @@ namespace FSMExtension.Services
         Task<FsmContact> GetContactAsync(string cloudHost, CompanyInfo company, string contactId);
         Task<FsmPerson[]> GetPersonsAsync(string cloudHost, CompanyInfo company, params string[] personIds);
         Task<FsmUser> GetUserAsync(string cloudHost, CompanyInfo company, string userId);
-        Task<FsmContact> GetEquipmentContactAsync(string cloudHost, CompanyInfo company, string equipmentId);
+        Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, string equipmentId);
     }
 
     /// <summary>
@@ -199,7 +199,7 @@ namespace FSMExtension.Services
             return token;
         }
 
-        public async Task<FsmContact> GetEquipmentContactAsync(string cloudHost, CompanyInfo company, string equipmentId)
+        public async Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, string equipmentId)
         {
             var queryApiRequest = new Uri($"https://{cloudHost}/api/query/v1?dtos=Equipment.{EquipmentVersion}");
             var body = JsonContent.Create(new { query = $"SELECT eqp.id, eqp.code, eqp.udf.OnsightRemoteExpertEmail, eqp.udf.OnsightRemoteExpertName FROM Equipment eqp WHERE eqp.id = '{equipmentId}'" });
@@ -212,15 +212,20 @@ namespace FSMExtension.Services
             // Map each user-defined field by its name
             var udfMap = eqpResult.UdfValues.ToDictionary(udf => udf.Name);
 
-            // Our FSM custom fields are NOT of type FsmContact (FSM UI isn't user-friendly in listing Contacts for user),
-            // so we need to instantiate our own FsmContact from the individual custom fields we do have.
-            return new FsmContact
+            return new FsmEquipment
             {
-                FirstName = udfMap.GetValueOrDefault(OnsightRemoteExpertName)?.Value ?? string.Empty,
-                LastName = string.Empty,
-                EmailAddress = udfMap.GetValueOrDefault(OnsightRemoteExpertEmail)?.Value ?? string.Empty,
-                Code = string.Empty,
-                PositionName = string.Empty
+                Code = eqpResult.Code,
+
+                // Our FSM custom fields are NOT of type FsmContact (FSM UI isn't user-friendly in listing Contacts for user),
+                // so we need to instantiate our own FsmContact from the individual custom fields we do have.
+                RemoteExpert = new FsmContact
+                {
+                    FirstName = udfMap.GetValueOrDefault(OnsightRemoteExpertName)?.Value ?? string.Empty,
+                    LastName = string.Empty,
+                    EmailAddress = udfMap.GetValueOrDefault(OnsightRemoteExpertEmail)?.Value ?? string.Empty,
+                    Code = string.Empty,
+                    PositionName = string.Empty
+                }
             };
         }
     }
