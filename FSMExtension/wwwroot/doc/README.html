@@ -123,27 +123,36 @@
         </p>
         <ul>
             <li>
-                Option 1: when the Remote Expert is associated with the Activity&#39;s Equipment (using the custom field approach defined above):
-                <pre><code>{
+                Option 1: when the Remote Expert is associated with the <u>Activity&#39;s Equipment</u> (using the custom field approach defined above).
+                <br>
+                <b>NOTE:</b>If you are NOT using the same UDF names shown above (i.e., <i>OnsightRemoteExpertEmail</i> or <i>OnsightRemoteExpertName</i>, you MUST substitute your UDF names for those names in the JSON snippet below):
+                <pre>
+                    <code>
+{
     "android": {
-        "url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&amp;to=${activity.equipment.udfValues.find(udf =&gt; udf.meta.name == 'OnsightRemoteExpertEmail').value}&amp;toFirst=${activity.equipment.udfValues.find(udf =&gt; udf.meta.name == 'OnsightRemoteExpertName').value}&amp;meta=eqp:${activity.equipment.code};act:${activity.code}" 
+        "url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertEmail').value}&toFirst=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertName').value}&meta=eqp:${activity.equipment.code};act:${activity.code}"
     },
     "ios": {
-        "url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&amp;to=${activity.equipment.udfValues.find(udf =&gt; udf.meta.name == 'OnsightRemoteExpertEmail').value}&amp;toFirst=${activity.equipment.udfValues.find(udf =&gt; udf.meta.name == 'OnsightRemoteExpertName').value}&amp;meta=eqp:${activity.equipment.code};act:${activity.code}" 
-    },
-}
-                </code></pre>
-            </li>
-            <li>
-                Option 2: when the Remote Expert is the Activity&#39;s Contact:<pre><code>{
-    <span class="hljs-string">"android"</span>: {
-        <span class="hljs-string">"url"</span>: <span class="hljs-string">"https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=<span class="hljs-variable">${activity.responsibles[0].emailAddress}</span>&amp;to=<span class="hljs-variable">${activity.contact.emailAddress}</span>&amp;toFirst=<span class="hljs-variable">${activity.contact.firstName}</span>&amp;toLast=<span class="hljs-variable">${activity.contact.lastName}</span>&amp;meta=eqp:<span class="hljs-variable">${activity.equipment.code}</span>;act:<span class="hljs-variable">${activity.code}</span>"</span>
-    },
-    <span class="hljs-string">"ios"</span>: {
-        <span class="hljs-string">"url"</span>: <span class="hljs-string">"https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=<span class="hljs-variable">${activity.responsibles[0].emailAddress}</span>&amp;to=<span class="hljs-variable">${activity.contact.emailAddress}</span>&amp;toFirst=<span class="hljs-variable">${activity.contact.firstName}</span>&amp;toLast=<span class="hljs-variable">${activity.contact.lastName}</span>&amp;meta=eqp:<span class="hljs-variable">${activity.equipment.code}</span>;act:<span class="hljs-variable">${activity.code}</span>"</span>
+        "url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertEmail').value}&toFirst=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertName').value}&meta=eqp:${activity.equipment.code};act:${activity.code}"
     }
 }
-</code></pre>
+                    </code>
+                </pre>
+            </li>
+            <li>
+                Option 2: when the Remote Expert is the <u>Activity&#39;s Contact</u>:
+                <pre>
+                    <code>
+{
+    "android": {
+        "url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"
+    },
+    "ios": {
+        "url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"
+    }
+}
+                    </code>
+                </pre>
             </li>
         </ul>
 <h3 id="web">Web</h3>

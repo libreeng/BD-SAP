@@ -25,7 +25,7 @@ namespace FSMExtension.Services
         Task<FsmContact> GetContactAsync(string cloudHost, CompanyInfo company, string contactId);
         Task<FsmPerson[]> GetPersonsAsync(string cloudHost, CompanyInfo company, params string[] personIds);
         Task<FsmUser> GetUserAsync(string cloudHost, CompanyInfo company, string userId);
-        Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, string equipmentId);
+        Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, DomainMapping domainMapping, string equipmentId);
     }
 
     /// <summary>
@@ -49,8 +49,6 @@ namespace FSMExtension.Services
         private readonly int ContactVersion = 17;
         private readonly int PersonVersion = 24;
         private readonly int EquipmentVersion = 23;
-        private const string OnsightRemoteExpertName = "OnsightRemoteExpertName";
-        private const string OnsightRemoteExpertEmail = "OnsightRemoteExpertEmail";
 
         private readonly MemoryCache cache;
 
@@ -63,6 +61,7 @@ namespace FSMExtension.Services
             var cacheOptions = new MemoryCacheOptions();
             cache = new MemoryCache(cacheOptions);
 
+            // Get DTO versions to use by reading from appsettings.json
             if (int.TryParse(config["FSM:DTOs:Activity"], out var intValue))
                 ActivityVersion = intValue;
             if (int.TryParse(config["FSM:DTOs:Contact"], out intValue))
@@ -199,10 +198,12 @@ namespace FSMExtension.Services
             return token;
         }
 
-        public async Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, string equipmentId)
+        public async Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, DomainMapping domainMapping, string equipmentId)
         {
+            var customRemoteExpertMapping = domainMapping.FsmAccount.Customization?.RemoteExpert;
+
             var queryApiRequest = new Uri($"https://{cloudHost}/api/query/v1?dtos=Equipment.{EquipmentVersion}");
-            var body = JsonContent.Create(new { query = $"SELECT eqp.id, eqp.code, eqp.udf.OnsightRemoteExpertEmail, eqp.udf.OnsightRemoteExpertName FROM Equipment eqp WHERE eqp.id = '{equipmentId}'" });
+            var body = JsonContent.Create(new { query = $"SELECT eqp.id, eqp.code, eqp.udf.{customRemoteExpertMapping?.Email ?? "meta"}, eqp.udf.{customRemoteExpertMapping?.Name ?? "meta"} FROM Equipment eqp WHERE eqp.id = '{equipmentId}'" });
             var message = await CreateMessageAsync(HttpMethod.Post, queryApiRequest, cloudHost, company, body);
 
             var eqpResult = await GetDtoAsync<FsmEquipmentResult>(message, "eqp");
@@ -212,6 +213,15 @@ namespace FSMExtension.Services
             // Map each user-defined field by its name
             var udfMap = eqpResult.UdfValues.ToDictionary(udf => udf.Name);
 
+            var expertEmail = string.Empty;
+            var expertName = string.Empty;
+            if (customRemoteExpertMapping != null)
+            {
+                Logger.LogInformation($"Found a customRemoteExpertMapping. Name Field={customRemoteExpertMapping.Name}; Email Field={customRemoteExpertMapping.Email}");
+                expertName = udfMap.GetValueOrDefault(customRemoteExpertMapping.Name)?.Value ?? string.Empty;
+                expertEmail = udfMap.GetValueOrDefault(customRemoteExpertMapping.Email)?.Value ?? string.Empty;
+            }
+
             return new FsmEquipment
             {
                 Code = eqpResult.Code,
@@ -220,9 +230,9 @@ namespace FSMExtension.Services
                 // so we need to instantiate our own FsmContact from the individual custom fields we do have.
                 RemoteExpert = new FsmContact
                 {
-                    FirstName = udfMap.GetValueOrDefault(OnsightRemoteExpertName)?.Value ?? string.Empty,
+                    FirstName = expertName,
                     LastName = string.Empty,
-                    EmailAddress = udfMap.GetValueOrDefault(OnsightRemoteExpertEmail)?.Value ?? string.Empty,
+                    EmailAddress = expertEmail,
                     Code = string.Empty,
                     PositionName = string.Empty
                 }

@@ -50,7 +50,13 @@ Each entry in the domain_mapping table represents a Librestream customer integra
                     "clientSecret": "..."
                 }
             }
-        ]
+        ],
+        "customization": {
+            "remoteExpert": {
+                "email": "NameOfMyCustomFieldReferencingTheRemoteExpertEmailAddress",
+                "name": "NameOfMyCustomFieldReferencingTheRemoteExpertName"
+            }
+        }
     }
 ```
 | Field       | Description |
@@ -75,6 +81,10 @@ Each entry in the domain_mapping table represents a Librestream customer integra
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;userInfoUrl | The identity provider's /userinfo URL. |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;clientId | Client ID to use when calling the identity provider's APIs. |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;clientSecret | Client Secret to use when calling the identity provider' APIs. |
+| &nbsp;&nbsp;&nbsp;&nbsp;customization | **[Optional]** Section detailing custom field names. |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;remoteExpert | Custom field names which map to the designated Remote Expert. These custom fields are attached to the Activity's Equipment DTO. |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;email | UDF name holding the Remote Expert's email address. |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name | UDF name holding the Remote Expert's name. |
 
 ## Backend
 

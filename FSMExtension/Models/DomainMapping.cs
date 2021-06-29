@@ -53,6 +53,9 @@ namespace FSMExtension.Models
 
         [JsonProperty("companies")]
         public IEnumerable<CompanyInfo> Companies { get; set; }
+        
+        [JsonProperty("customization")]
+        public Customization Customization { get; set; }
 
         [JsonIgnore]
         public DomainMapping DomainMapping

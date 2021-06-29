@@ -87,14 +87,16 @@
 
    3) The new Workflow Step should be set to a Screen Type of "External application".
    4) The Workflow Step's Configuration should be set to one of the two following options, depending on where the designated Remote Expert information is located:
-        - Option 1: when the Remote Expert is associated with the Activity's Equipment (see above for details):
+        - Option 1: when the Remote Expert is associated with the __Activity's Equipment__ (see above for details):
+        ---
+        **NOTE:** If you are NOT using the same UDF names shown above (i.e., <i>OnsightRemoteExpertEmail</i> or <i>OnsightRemoteExpertName</i>, you MUST substitute your UDF names for those names in the JSON snippet below):
          ```
         {
            "android": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertEmail').value}&toFirst=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertName').value}&meta=eqp:${activity.equipment.code};act:${activity.code}"},
            "ios": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertEmail').value}&toFirst=${activity.equipment.udfValues.find(udf => udf.meta.name == 'OnsightRemoteExpertName').value}&meta=eqp:${activity.equipment.code};act:${activity.code}"}
         }
          ```
-        - Option 2: when the Remote Expert is the Activity's Contact:
+        - Option 2: when the Remote Expert is the __Activity's Contact__:
          ```
         {
            "android": {"url": "https://fsm-extension-app.azurewebsites.net/FsmMobileIndex?from=${activity.responsibles[0].emailAddress}&to=${activity.contact.emailAddress}&toFirst=${activity.contact.firstName}&toLast=${activity.contact.lastName}&meta=eqp:${activity.equipment.code};act:${activity.code}"},

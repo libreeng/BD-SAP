@@ -96,9 +96,6 @@ namespace FSMExtension.Controllers
         /// This endpoint is invoked by the web UI only (not mobile) and uses an internal
         /// Bearer token for authentication.
         /// </summary>
-        /// <param name="crm"></param>
-        /// <param name="fromEmail"></param>
-        /// <param name="crmSourceId"></param>
         /// <returns></returns>
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -127,22 +124,19 @@ namespace FSMExtension.Controllers
             var contacts = new List<Contact>();
 
             // Get remote expert, either designated by the Equipment or the Activity.Contact
-            var equipment = await FsmApiService.GetEquipmentAsync(cloudHost, company, activity.EquipmentId);
+            var equipment = await FsmApiService.GetEquipmentAsync(cloudHost, company, domainMapping, activity.EquipmentId);
             var remoteExpert = await GetRemoteExpertAsync(cloudHost, company, activity, equipment, fromEmail);
             if (remoteExpert != null)
                 contacts.Add(remoteExpert);
 
             // Get responsible's details from activity.responsibles[]. This is the assigned field worker.
             var responsibles = await FsmApiService.GetPersonsAsync(cloudHost, company, activity.Responsibles);
-            contacts.AddRange(responsibles.Select(r =>
+            contacts.AddRange(responsibles.Select(r => new Contact
             {
-                return new Contact
-                {
-                    Name = $"{r.FirstName} {r.LastName}",
-                    Title = r.PositionName ?? r.JobTitle,
-                    Role = ContactRole.FieldTech,
-                    Connection = GetConnectionUrl(fromEmail, r.EmailAddress, equipment?.Code, activity.Code)
-                };
+                Name = $"{r.FirstName} {r.LastName}",
+                Title = r.PositionName ?? r.JobTitle,
+                Role = ContactRole.FieldTech,
+                Connection = GetConnectionUrl(fromEmail, r.EmailAddress, equipment?.Code, activity.Code)
             }));
 
             foreach (var c in contacts)
@@ -158,10 +152,6 @@ namespace FSMExtension.Controllers
         ///     a) designated using custom fields associated with the Activity's equipment, or
         ///     b) the Activity's Contact.
         /// </summary>
-        /// <param name="cloudHost"></param>
-        /// <param name="company"></param>
-        /// <param name="activity"></param>
-        /// <param name="fromEmail"></param>
         /// <returns></returns>
         private async Task<Contact> GetRemoteExpertAsync(
             string cloudHost,
