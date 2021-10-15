@@ -121,6 +121,10 @@ namespace FSMExtension.Controllers
             if (activity == null)
                 return NotFound();
 
+            // return activity details only if fromEmail is not specified
+            if (fromEmail == null)
+                return Ok(activity);
+
             var contacts = new List<Contact>();
 
             // Get remote expert, either designated by the Equipment or the Activity.Contact
@@ -145,33 +149,6 @@ namespace FSMExtension.Controllers
             }
 
             return Ok(contacts);
-        }
-
-        /// <summary>
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [Route("fsm/activity")]
-        public async Task<IActionResult> GetActivity(
-            [FromQuery(Name = "h")] string cloudHost,
-            [FromQuery(Name = "a")] string accountId,
-            [FromQuery(Name = "c")] string companyId,
-            [FromQuery(Name = "av")] string activityId)
-        {
-            
-            // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
-            var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
-            var company = domainMapping.FsmAccount.FindCompany(companyId);
-            if (company == null)
-                return NotFound();
-
-            // Get activity details based on 'crmSourceId'
-            var activity = await FsmApiService.GetActivityAsync(cloudHost, company, activityId);
-            if (activity == null)
-                return NotFound();
-            
-            return Ok(activity);
         }
 
         /// <summary>

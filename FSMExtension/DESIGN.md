@@ -107,7 +107,8 @@ returning an Onsight Connect URI. Opening the returned URI will open Onsight con
       - While the API itself is not protected, the Onsight Connect application will still require
       all participants to enter their credentials before the call can proceed.
   2) *GET /api/vi/fsm/connections*: takes a set of FSM account details AND an FSM Activity, returning
-a list of */api/v1/fsm/connection* URLs corresponding to the Activity's assigned responsibles and contact.
+a list of */api/v1/fsm/connection* URLs corresponding to the Activity's assigned responsibles and contact, or FSM Activity details.
+      - This API will return Activity Details for Workspace integration if "fromEmail" is not specified in the request.
       - This API is used exclusively by the FSM web frontend and as such can be restricted to authenticated users only.
       - This API requires a JWT Bearer token which can be obtained by initiaing an authentication flow via */auth/provider*.
         - If the customer is configured to use a 3rd-party OpenID Connect provider, this will redirect the end-user to
@@ -123,7 +124,7 @@ The extension's web frontend uses the FSM shell SDK to retrieve the FSM user's a
 These credentials are passed to the backend to optionally verify the FSM user's identity via a 3rd-party OpenID Connect provider.
 
 Once verified, the frontend makes requests to the backend (*/api/v1/fsm/connections*) to display available Onsight connections
-for the currently-selected Activity.
+or activity details for the currently-selected Activity.
 
 #### Mobile
 
@@ -136,4 +137,4 @@ does not provide the same level of functionality:
       directly to the mobile extension's frontend as query parameters.
   - The mobile app user is assumed to be the field tech/responsible person for the given Activity.
     - The only person available for an Onsight Call becomes the designated expert.
-
+  - Currently Workspace integration is not supported.

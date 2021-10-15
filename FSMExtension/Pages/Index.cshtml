@@ -308,10 +308,10 @@
             const accountId = '93792';
             const companyId = '105578';
             const activityId = '72D49E4B07794D15A75F27D22EA1B94D';
-            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoZWxwZGVza0Bjb2dzd2VsbHNwcm9ja2V0cy5jb20iLCJqdGkiOiJiNzZlZDJjYS1iOGNkLTQyZGYtYWY1Ny03ZmY0MjQ5M2ZhN2MiLCJleHAiOjE2MzQyNjQwNTAsImlzcyI6ImxpYnJlc3RyZWFtLmNvbSIsImF1ZCI6ImxpYnJlc3RyZWFtLmNvbSJ9.-HgXIOQLl0pjoY5Pya1eoUHJ9Q-PJjlQ3-tJEwFWXtA';
+            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoZWxwZGVza0Bjb2dzd2VsbHNwcm9ja2V0cy5jb20iLCJqdGkiOiIwNmM5MDEzMi03MGViLTQ5ZTctYmZlOS02ZjBhZTViMWRiN2MiLCJleHAiOjE2MzQzMTUwMjAsImlzcyI6ImxpYnJlc3RyZWFtLmNvbSIsImF1ZCI6ImxpYnJlc3RyZWFtLmNvbSJ9.iiXNA7IhWR1X4OIOsp3I3U1xO37faodqkGqZyCQZUcs';
             //
 
-            await fetch("/api/v1/fsm/activity?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
+            await fetch("/api/v1/fsm/connections?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
                 method: "GET",
                 mode: "cors",
                 credentials: "include",
