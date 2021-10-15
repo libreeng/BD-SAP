@@ -114,6 +114,7 @@
    Once the customer has been added to the Onsight extension database, the FSM administrator must enable
    the extension in the web UI. This is done through the standard FSM extension mechanism:
    
+   - Select "Planning and Dispatching" from the dropdown menu in the upper-left corner of FSM.
    - Click "Open Extension Configuration" from the "..." menu in the upper-right-hand corner of FSM,
      which will place the UI into "Configuration Mode".
    - On the right-hand-side, under the "PLUG-IN" section, click the "Add Extension" button.

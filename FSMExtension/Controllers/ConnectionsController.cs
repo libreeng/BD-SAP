@@ -148,6 +148,33 @@ namespace FSMExtension.Controllers
         }
 
         /// <summary>
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Route("fsm/activity")]
+        public async Task<IActionResult> GetActivity(
+            [FromQuery(Name = "h")] string cloudHost,
+            [FromQuery(Name = "a")] string accountId,
+            [FromQuery(Name = "c")] string companyId,
+            [FromQuery(Name = "av")] string activityId)
+        {
+            
+            // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
+            var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
+            var company = domainMapping.FsmAccount.FindCompany(companyId);
+            if (company == null)
+                return NotFound();
+
+            // Get activity details based on 'crmSourceId'
+            var activity = await FsmApiService.GetActivityAsync(cloudHost, company, activityId);
+            if (activity == null)
+                return NotFound();
+            
+            return Ok(activity);
+        }
+
+        /// <summary>
         /// Fetches contact information about the Activity's remote expert. The expert is either:
         ///     a) designated using custom fields associated with the Activity's equipment, or
         ///     b) the Activity's Contact.

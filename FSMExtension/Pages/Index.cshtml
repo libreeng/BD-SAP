@@ -20,6 +20,55 @@
             integrity="sha256-i+j3ZmMaI9nPuzasKbNrT3evNnUewPBf5p9UEJdr2zA=" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/fsm-shell"></script>
     <link rel="stylesheet" type="text/css" href="/css/site.css" />
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <style>
+        /*remove this after testing*/
+ 
+        .ui-accordion .ui-accordion-content {
+            padding: 0 !important;
+        }
+
+        .ui-accordion-content {
+            text-align: left !important;
+        }
+
+        .accordion .ui-accordion-header {
+            font-family: TradeGothic18;
+        }
+
+        .accordion .ui-accordion-content {
+            font-family: TradeGothic18;
+        }
+
+        .accordion .ui-accordion-header.ui-state-active {
+            background: #00a3e0;
+        }
+
+        .accordion .ui-accordion-header.ui-state-hover {
+            background: #00a3e0;
+        }
+
+        h3 {
+            text-align: center;
+            font-family: TradeGothic18;
+        }
+
+        .body {
+            color: #ffffff;
+            background: #003963;
+            font-family: TradeGothic18;
+            padding: 0px 10px;
+        }
+
+        .accordion table {
+            word-break: break-word;
+            font-family: TradeGothic18;
+            padding: 10px 0px 10px 10px;
+        }
+        /*end*/
+    </style>
 </head>
 
 <body class="body">
@@ -132,7 +181,7 @@
                             cannotLogIn = true;
                             showUI("showMessage", PLEASE_CONTACT_LIBRESTREAM_MSG);
                         }
-                    })                    
+                    })
                     .catch(reason => {
                         console.log("Failed to contact auth provider: " + reason);
                         cannotLogIn = true;
@@ -248,6 +297,102 @@
                 .catch(reason => console.log("Failed to open connection to " + name + ": " + reason));
         }
 
+        async function getWorkspaceDocuments() {
+            let html = '';
+            let element = document.getElementById('workspaceAssets');
+            const WORKSPACE_ROOT_URI = 'https://workspace.librestream.com/onsight/ui/#!/browse/';
+            $("#importBtn").prop('disabled', true);
+
+            // remove after testing
+            const cloudHost = 'eu.coresuite.com';
+            const accountId = '93792';
+            const companyId = '105578';
+            const activityId = '72D49E4B07794D15A75F27D22EA1B94D';
+            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoZWxwZGVza0Bjb2dzd2VsbHNwcm9ja2V0cy5jb20iLCJqdGkiOiJiNzZlZDJjYS1iOGNkLTQyZGYtYWY1Ny03ZmY0MjQ5M2ZhN2MiLCJleHAiOjE2MzQyNjQwNTAsImlzcyI6ImxpYnJlc3RyZWFtLmNvbSIsImF1ZCI6ImxpYnJlc3RyZWFtLmNvbSJ9.-HgXIOQLl0pjoY5Pya1eoUHJ9Q-PJjlQ3-tJEwFWXtA';
+            //
+
+            await fetch("/api/v1/fsm/activity?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
+                method: "GET",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                },
+                cache: "no-cache"
+            }).then(response => response.json())
+                .then(activity => {
+                    if (!activity.code) {
+                        return;
+                    }
+
+                    var workspaceUrl = 'https://api.librestream.com/workspace/documents?query=(externalMetadataValue = \'' + activity.code + '\')';
+
+                    return fetch(workspaceUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Api-Key': 'AheUnSk9x2E2Gbrc0IxHAg.-c46bqVtDt39B83gRVqejMohOx-VXaVYM8lgU5VMe_8' // remove after testing
+                        }
+                    });
+                }).then(response => response.json())
+                .then(call => {
+                    html += `
+                            <div>
+                            <h3>Develops SC</h3>
+                            <div><div class="accordion">
+                            <h3>Onsight Workspace Documents (${call.totalResults})</h3><div>`;
+                    call.documents.forEach(document => {
+                        var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
+                        var content = `
+                            <div class="accordion">
+                                <h3>${document.title}</h3>
+                                <div>
+                                    <table>
+                                        <tr><td><b>Document Title</b></td></tr>
+                                        <tr><td>${document.title}</td></tr>
+                                        <tr><td><b>ID</b></td></tr>
+                                        <tr><td>${document.id}</td></tr>
+                                        <tr><td><b>Type</b></td></tr>
+                                        <tr><td>${document.type}</td></tr>
+                                        <tr><td><b>External Metadata</b></td></tr>
+                                        <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
+                                        <tr><td><b>Parent ID</b></td></tr>
+                                        <tr><td>${document.parentID}</td></tr>
+                                        <tr><td><b>Download URL</b></td></tr>
+                                        <tr>
+                                            <td>
+                                                <a target="_blank" href="${downloadUrl}">
+                                                    ${downloadUrl}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <tr><td><b>Onsight Connect Call</b></td></tr>
+                                        <tr><td>211007_210808_fieldtech</td></tr>
+                                        <tr><td><b>Created By</b></td></tr>
+                                        <tr><td>${document.createdBy}, ${document.createdOn}</td></tr>
+                                        <tr><td><b>Owner</b></td></tr>
+                                        <tr><td>${document.author}</td></tr>
+                                    </table>
+                                </div>
+                            </div>`;
+                        html += content;
+                    });
+                }).catch(error => {
+                    console.log(error);
+                }).finally(() => {
+                    html += '</div></div></div></div>';
+                    element.innerHTML = html;
+
+                    $(".accordion").accordion({
+                        header: "> h3:not(.item)",
+                        heightStyle: "content",
+                        active: false,
+                        collapsible: true
+                    });
+
+                    $("#importBtn").prop('disabled', false);
+                });
+        }
+
         function updateContactsTable(table, contacts) {
             if (!table || !contacts) {
                 return;
@@ -282,7 +427,7 @@
 
     <div>
         <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
-        <div class="heading center">REMOTE EXPERT ASSISTANCE</div>
+        <div class="heading center">REMOTE EXPERT ASSISTANCE DEVELOP</div>
 
         <div id="login" style="display: none; padding-top: 50px;">
             <span class="center">Loading...</span>
@@ -304,6 +449,10 @@
             <table id="expertsTable" width="100%">
                 <tr></tr>
             </table>
+        </div>
+        <div padding-top: 50px;">
+            <button class="center" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
+            <div id="workspaceAssets"></div>
         </div>
     </div>
 
