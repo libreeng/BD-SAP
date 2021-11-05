@@ -20,11 +20,13 @@ namespace FSMExtension.Controllers
     {
         public ConnectionsController(
             IOnsightConnectService connectService,
+            IOnsightWorkspaceService workspaceService,
             IFsmApiService fsmApiService,
             IDomainMappingRepository domainRepo,
             ILogger<ConnectionsController> logger)
         {
             OnsightConnectService = connectService;
+            OnsightWorkspaceService = workspaceService;
             FsmApiService = fsmApiService;
             DomainRepository = domainRepo;
             FsmMetadataBuilder = new FsmMetadataBuilder();
@@ -32,6 +34,8 @@ namespace FSMExtension.Controllers
         }
 
         private IOnsightConnectService OnsightConnectService { get; }
+
+        private IOnsightWorkspaceService OnsightWorkspaceService { get; }
 
         private IFsmApiService FsmApiService { get; }
 
@@ -88,6 +92,31 @@ namespace FSMExtension.Controllers
                 return NotFound();
 
             return Ok(uri);
+        }
+
+        [HttpGet]
+        [Route("fsm/workspace-documents")]
+        public async Task<IActionResult> GetWorkspaceDocuments(
+        [FromQuery] string from,
+        [FromQuery] string activityCode)
+        {
+            Logger.LogDebug($"GetConnection: from={from}");
+
+            // Try finding the Onsight API Key corresponding to the 'from' email address
+            var domainMapping = await DomainRepository.GetFromUserEmailAsync(from);
+            Logger.LogDebug($"GetWorkspaceDocuments get domain_mapping success = {domainMapping != null}");
+            if (domainMapping == null)
+                return NotFound();
+
+            // Fetch and return Onsight Workspace documents using APIKey + activityCode
+            var platform = Utils.DetectPlatform(Request);
+            Logger.LogInformation($"Detected platform {platform}.");
+            var documents = await OnsightWorkspaceService.GetWorkspaceDocumentsAsync(domainMapping.OnsightApiKey, activityCode);
+
+            if (string.IsNullOrEmpty(documents))
+                return NotFound();
+
+            return Ok(documents);
         }
 
         /// <summary>

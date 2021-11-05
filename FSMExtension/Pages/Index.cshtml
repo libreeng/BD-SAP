@@ -122,6 +122,7 @@
                 sessionStorage.removeItem("activityId");
 
                 if (isLoggedIn()) {
+                    $("#importBtn").hide();
                     showUI("showMessage", "No Activity selected.");
                 } else {
                     showUI("loggedOut");
@@ -141,6 +142,7 @@
                         showUI("showContacts", connections);
                     }
                     else {
+                        $("#importBtn").hide();
                         showUI("showMessage", "No Activity selected.");
                     }
                 } else {
@@ -190,6 +192,8 @@
         }
 
         async function getConnections(activityId) {
+            $("#importBtn").hide();
+            document.getElementById('workspaceAssets').innerHTML = '';
             /* Forward query params on to API */
             var urls = [];
             if (!isLoggedIn()) {
@@ -204,6 +208,7 @@
             const token = sessionStorage.getItem("token");
 
             if (!activityId) {
+                $("#importBtn").hide();
                 showUI("showMessage", "No Activity selected.");
                 return urls;
             }
@@ -227,6 +232,7 @@
                 location.reload();
             } else if (response.ok) {
                 urls = await response.json();
+                $("#importBtn").show();
             } else {
                 console.error("Failed to fetch connections: " + response.statusText);
                 showUI("showMessage", "Contacts unavailable");
@@ -303,13 +309,12 @@
             const WORKSPACE_ROOT_URI = 'https://workspace.librestream.com/onsight/ui/#!/browse/';
             $("#importBtn").prop('disabled', true);
 
-            // remove after testing
-            const cloudHost = 'eu.coresuite.com';
-            const accountId = '93792';
-            const companyId = '105578';
-            const activityId = '72D49E4B07794D15A75F27D22EA1B94D';
-            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJoZWxwZGVza0Bjb2dzd2VsbHNwcm9ja2V0cy5jb20iLCJqdGkiOiIwNmM5MDEzMi03MGViLTQ5ZTctYmZlOS02ZjBhZTViMWRiN2MiLCJleHAiOjE2MzQzMTUwMjAsImlzcyI6ImxpYnJlc3RyZWFtLmNvbSIsImF1ZCI6ImxpYnJlc3RyZWFtLmNvbSJ9.iiXNA7IhWR1X4OIOsp3I3U1xO37faodqkGqZyCQZUcs';
-            //
+            const cloudHost = sessionStorage.getItem("cloudHost");
+            const accountId = sessionStorage.getItem("accountId");
+            const companyId = sessionStorage.getItem("companyId");
+            const token = sessionStorage.getItem("token");
+            const activityId = sessionStorage.getItem("activityId");
+            const fromEmail = sessionStorage.getItem("fromEmail");
 
             await fetch("/api/v1/fsm/connections?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
                 method: "GET",
@@ -325,20 +330,13 @@
                         return;
                     }
 
-                    var workspaceUrl = 'https://api.librestream.com/workspace/documents?query=(externalMetadataValue = \'' + activity.code + '\')';
+                    var workspaceDocuments = '/api/v1/fsm/workspace-documents?activityCode=' + activity.code + '&from=' + fromEmail;
 
-                    return fetch(workspaceUrl, {
-                        method: 'GET',
-                        headers: {
-                            'X-Api-Key': 'AheUnSk9x2E2Gbrc0IxHAg.-c46bqVtDt39B83gRVqejMohOx-VXaVYM8lgU5VMe_8' // remove after testing
-                        }
-                    });
+                    return fetch(workspaceDocuments);
                 }).then(response => response.json())
                 .then(call => {
                     html += `
-                            <div>
-                            <h3>Develops SC</h3>
-                            <div><div class="accordion">
+                            <div style="margin-bottom: 15px;"><div class="accordion">
                             <h3>Onsight Workspace Documents (${call.totalResults})</h3><div>`;
                     call.documents.forEach(document => {
                         var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
@@ -376,20 +374,20 @@
                             </div>`;
                         html += content;
                     });
-                }).catch(error => {
-                    console.log(error);
-                }).finally(() => {
-                    html += '</div></div></div></div>';
+                }).then(() => {
+                    html += '</div></div></div>';
                     element.innerHTML = html;
-
+                }).catch(error => {
+                    console.error("Failed to fetch workspace documents: " + error);
+                    
+                }).finally(() => {
+                    $("#importBtn").prop('disabled', false);
                     $(".accordion").accordion({
                         header: "> h3:not(.item)",
                         heightStyle: "content",
                         active: false,
                         collapsible: true
                     });
-
-                    $("#importBtn").prop('disabled', false);
                 });
         }
 
@@ -450,8 +448,8 @@
                 <tr></tr>
             </table>
         </div>
-        <div padding-top: 50px;">
-            <button class="center" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
+        <div >
+            <button style="margin:15px auto 15px auto;" class="center" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
             <div id="workspaceAssets"></div>
         </div>
     </div>
