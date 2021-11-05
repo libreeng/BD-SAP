@@ -63,6 +63,7 @@ namespace FSMExtension
             services.AddSingleton<IFsmApiService, FsmApiService>();
             services.AddSingleton<IOpenIdService, OpenIdService>();
             services.AddSingleton<IOnsightConnectService, OnsightConnectService>();
+            services.AddSingleton<IOnsightWorkspaceService, OnsightWorkspaceService>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
