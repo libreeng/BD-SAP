@@ -25,7 +25,7 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
     <style>
         /*remove this after testing*/
- 
+
         .ui-accordion .ui-accordion-content {
             padding: 0 !important;
         }
@@ -335,51 +335,54 @@
                     return fetch(workspaceDocuments);
                 }).then(response => response.json())
                 .then(call => {
-                    html += `
-                            <div style="margin-bottom: 15px;"><div class="accordion">
-                            <h3>Onsight Workspace Documents (${call.totalResults})</h3><div>`;
-                    call.documents.forEach(document => {
-                        var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
-                        var content = `
-                            <div class="accordion">
-                                <h3>${document.title}</h3>
-                                <div>
-                                    <table>
-                                        <tr><td><b>Document Title</b></td></tr>
-                                        <tr><td>${document.title}</td></tr>
-                                        <tr><td><b>ID</b></td></tr>
-                                        <tr><td>${document.id}</td></tr>
-                                        <tr><td><b>Type</b></td></tr>
-                                        <tr><td>${document.type}</td></tr>
-                                        <tr><td><b>External Metadata</b></td></tr>
-                                        <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
-                                        <tr><td><b>Parent ID</b></td></tr>
-                                        <tr><td>${document.parentID}</td></tr>
-                                        <tr><td><b>Download URL</b></td></tr>
-                                        <tr>
-                                            <td>
-                                                <a target="_blank" href="${downloadUrl}">
-                                                    ${downloadUrl}
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        <tr><td><b>Onsight Connect Call</b></td></tr>
-                                        <tr><td>211007_210808_fieldtech</td></tr>
-                                        <tr><td><b>Created By</b></td></tr>
-                                        <tr><td>${document.createdBy}, ${document.createdOn}</td></tr>
-                                        <tr><td><b>Owner</b></td></tr>
-                                        <tr><td>${document.author}</td></tr>
-                                    </table>
-                                </div>
-                            </div>`;
-                        html += content;
-                    });
-                }).then(() => {
-                    html += '</div></div></div>';
-                    element.innerHTML = html;
+                    if (call.type.includes("https://tools.ietf.org/html/rfc7231")) {
+                        // The URL returned by the backend indicates that Onsight cannot locate the contact
+                        alert("There was a problem trying to locate " + fromEmail + ". Please use the Onsight Platform Manager to ensure this person is a member of your Onsight domain and try again.");
+                    } else {
+                        html += `
+                                <div style="margin-bottom: 15px;"><div class="accordion">
+                                <h3>Onsight Workspace Documents (${call.totalResults})</h3><div>`;
+                        call.documents.forEach(document => {
+                            var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
+                            var content = `
+                                <div class="accordion">
+                                    <h3>${document.title}</h3>
+                                    <div>
+                                        <table>
+                                            <tr><td><b>Document Title</b></td></tr>
+                                            <tr><td>${document.title}</td></tr>
+                                            <tr><td><b>ID</b></td></tr>
+                                            <tr><td>${document.id}</td></tr>
+                                            <tr><td><b>Type</b></td></tr>
+                                            <tr><td>${document.type}</td></tr>
+                                            <tr><td><b>External Metadata</b></td></tr>
+                                            <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
+                                            <tr><td><b>Parent ID</b></td></tr>
+                                            <tr><td>${document.parentID}</td></tr>
+                                            <tr><td><b>Download URL</b></td></tr>
+                                            <tr>
+                                                <td>
+                                                    <a target="_blank" href="${downloadUrl}">
+                                                        ${downloadUrl}
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            <tr><td><b>Onsight Connect Call</b></td></tr>
+                                            <tr><td>211007_210808_fieldtech</td></tr>
+                                            <tr><td><b>Created By</b></td></tr>
+                                            <tr><td>${document.createdBy}, ${document.createdOn}</td></tr>
+                                            <tr><td><b>Owner</b></td></tr>
+                                            <tr><td>${document.author}</td></tr>
+                                        </table>
+                                    </div>
+                                </div>`;
+                            html += content;
+                        });
+                        html += '</div></div></div>';
+                        element.innerHTML = html;
+                    }
                 }).catch(error => {
                     console.error("Failed to fetch workspace documents: " + error);
-                    
                 }).finally(() => {
                     $("#importBtn").prop('disabled', false);
                     $(".accordion").accordion({
@@ -448,7 +451,7 @@
                 <tr></tr>
             </table>
         </div>
-        <div >
+        <div>
             <button style="margin:15px auto 15px auto;" class="center" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
             <div id="workspaceAssets"></div>
         </div>
