@@ -19,56 +19,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/systemjs/4.1.0/system.min.js"
             integrity="sha256-i+j3ZmMaI9nPuzasKbNrT3evNnUewPBf5p9UEJdr2zA=" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/fsm-shell"></script>
-    <link rel="stylesheet" type="text/css" href="/css/site.css" />
+    <link rel="stylesheet" type="text/css" href="~/css/site.css" />
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <style>
-        /*remove this after testing*/
-
-        .ui-accordion .ui-accordion-content {
-            padding: 0 !important;
-        }
-
-        .ui-accordion-content {
-            text-align: left !important;
-        }
-
-        .accordion .ui-accordion-header {
-            font-family: TradeGothic18;
-        }
-
-        .accordion .ui-accordion-content {
-            font-family: TradeGothic18;
-        }
-
-        .accordion .ui-accordion-header.ui-state-active {
-            background: #00a3e0;
-        }
-
-        .accordion .ui-accordion-header.ui-state-hover {
-            background: #00a3e0;
-        }
-
-        h3 {
-            text-align: center;
-            font-family: TradeGothic18;
-        }
-
-        .body {
-            color: #ffffff;
-            background: #003963;
-            font-family: TradeGothic18;
-            padding: 0px 10px;
-        }
-
-        .accordion table {
-            word-break: break-word;
-            font-family: TradeGothic18;
-            padding: 10px 0px 10px 10px;
-        }
-        /*end*/
-    </style>
 </head>
 
 <body class="body">
@@ -122,7 +76,6 @@
                 sessionStorage.removeItem("activityId");
 
                 if (isLoggedIn()) {
-                    $("#importBtn").hide();
                     showUI("showMessage", "No Activity selected.");
                 } else {
                     showUI("loggedOut");
@@ -140,9 +93,10 @@
                     if (id) {
                         const connections = await getConnections(id);
                         showUI("showContacts", connections);
+                        $("#workspaceAssets").empty();
+                        $("#contentImportWorkspace").show();
                     }
                     else {
-                        $("#importBtn").hide();
                         showUI("showMessage", "No Activity selected.");
                     }
                 } else {
@@ -192,8 +146,6 @@
         }
 
         async function getConnections(activityId) {
-            $("#importBtn").hide();
-            document.getElementById('workspaceAssets').innerHTML = '';
             /* Forward query params on to API */
             var urls = [];
             if (!isLoggedIn()) {
@@ -208,7 +160,6 @@
             const token = sessionStorage.getItem("token");
 
             if (!activityId) {
-                $("#importBtn").hide();
                 showUI("showMessage", "No Activity selected.");
                 return urls;
             }
@@ -246,7 +197,7 @@
             const noShell = document.querySelector("#noShell");
             const message = document.querySelector("#message");
             const content = document.querySelector("#content");
-
+            const contentImportWorkspace = document.querySelector("#contentImportWorkspace");
             if (!login) {
                 return;
             }
@@ -255,6 +206,7 @@
             noShell.style.display = "none";
             content.style.display = "none";
             message.style.display = "none";
+            contentImportWorkspace.style.display = "none";
 
             switch (state) {
                 case "noShell":
@@ -305,7 +257,8 @@
 
         async function getWorkspaceDocuments() {
             let html = '';
-            let element = document.getElementById('workspaceAssets');
+            let results = 0;
+            let element = $("#workspaceAssets");
             const WORKSPACE_ROOT_URI = 'https://workspace.librestream.com/onsight/ui/#!/browse/';
             $("#importBtn").prop('disabled', true);
 
@@ -329,9 +282,7 @@
                     if (!activity.code) {
                         return;
                     }
-
                     var workspaceDocuments = '/api/v1/fsm/workspace-documents?activityCode=' + activity.code + '&from=' + fromEmail;
-
                     return fetch(workspaceDocuments);
                 }).then(response => response.json())
                 .then(call => {
@@ -339,47 +290,49 @@
                         // The URL returned by the backend indicates that Onsight cannot locate the contact
                         alert("There was a problem trying to locate " + fromEmail + ". Please use the Onsight Platform Manager to ensure this person is a member of your Onsight domain and try again.");
                     } else {
+                        results = call.totalResults;
                         html += `
-                                <div style="margin-bottom: 15px;"><div class="accordion">
-                                <h3>Onsight Workspace Documents (${call.totalResults})</h3><div>`;
+                                    <div style="margin-bottom: 15px;"><div class="accordion">
+                                    <h3>Onsight Workspace Documents (${results})</h3><div>`;
                         call.documents.forEach(document => {
                             var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
                             var content = `
-                                <div class="accordion">
-                                    <h3>${document.title}</h3>
-                                    <div>
-                                        <table>
-                                            <tr><td><b>Document Title</b></td></tr>
-                                            <tr><td>${document.title}</td></tr>
-                                            <tr><td><b>ID</b></td></tr>
-                                            <tr><td>${document.id}</td></tr>
-                                            <tr><td><b>Type</b></td></tr>
-                                            <tr><td>${document.type}</td></tr>
-                                            <tr><td><b>External Metadata</b></td></tr>
-                                            <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
-                                            <tr><td><b>Parent ID</b></td></tr>
-                                            <tr><td>${document.parentID}</td></tr>
-                                            <tr><td><b>Download URL</b></td></tr>
-                                            <tr>
-                                                <td>
-                                                    <a target="_blank" href="${downloadUrl}">
-                                                        ${downloadUrl}
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            <tr><td><b>Onsight Connect Call</b></td></tr>
-                                            <tr><td>211007_210808_fieldtech</td></tr>
-                                            <tr><td><b>Created By</b></td></tr>
-                                            <tr><td>${document.createdBy}, ${document.createdOn}</td></tr>
-                                            <tr><td><b>Owner</b></td></tr>
-                                            <tr><td>${document.author}</td></tr>
-                                        </table>
-                                    </div>
-                                </div>`;
+                                    <div class="accordion">
+                                        <h3>${document.title}</h3>
+                                        <div>
+                                            <table>
+                                                <tr><td><b>Document Title</b></td></tr>
+                                                <tr><td>${document.title}</td></tr>
+                                                <tr><td><b>ID</b></td></tr>
+                                                <tr><td>${document.id}</td></tr>
+                                                <tr><td><b>Type</b></td></tr>
+                                                <tr><td>${document.type}</td></tr>
+                                                <tr><td><b>External Metadata</b></td></tr>
+                                                <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
+                                                <tr><td><b>Parent ID</b></td></tr>
+                                                <tr><td>${document.parentID}</td></tr>
+                                                <tr><td><b>Download URL</b></td></tr>
+                                                <tr>
+                                                    <td>
+                                                        <a class="workspaceLink" target="_blank" href="${downloadUrl}">
+                                                            ${downloadUrl}
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                <tr><td><b>Onsight Connect Call</b></td></tr>
+                                                <tr><td>211007_210808_fieldtech</td></tr>
+                                                <tr><td><b>Created By</b></td></tr>
+                                                <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
+
+                                                <tr><td><b>Owner</b></td></tr>
+                                                <tr><td>${document.author}</td></tr>
+                                            </table>
+                                        </div>
+                                    </div>`;
                             html += content;
                         });
                         html += '</div></div></div>';
-                        element.innerHTML = html;
+                        element.html(html);
                     }
                 }).catch(error => {
                     console.error("Failed to fetch workspace documents: " + error);
@@ -391,7 +344,16 @@
                         active: false,
                         collapsible: true
                     });
+                    if (results == 0) {
+                        $(".accordion").addClass("ui-state-disabled");
+                    }
                 });
+        }
+
+        function formatDateTime(value) {
+            var m = new Date(value);
+            var dateString = (m.getUTCMonth() + 1) + "/" + m.getUTCDate() + "/" + m.getUTCFullYear() + " " + m.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+            return dateString;
         }
 
         function updateContactsTable(table, contacts) {
@@ -451,7 +413,7 @@
                 <tr></tr>
             </table>
         </div>
-        <div>
+        <div id="contentImportWorkspace" style="display: none;">
             <button style="margin:15px auto 15px auto;" class="center" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
             <div id="workspaceAssets"></div>
         </div>
