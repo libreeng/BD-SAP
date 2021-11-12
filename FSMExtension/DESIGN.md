@@ -1,6 +1,6 @@
 # FSM Extension Design Notes
 
-This repo contains an implementation of a Librestream Onsight Connect extension for the SAP Field Service Manager (FSM) application.
+This repo contains an implementation of a Librestream Onsight Connect and Workspace extension for the SAP Field Service Manager (FSM) application.
 It provides both the frontend and backend components for the extension within both the web and mobile versions of FSM.
 
 For a high-level overview of this extension's uses and requirements, [see the README](./wwwroot/doc/README.md).
@@ -90,15 +90,18 @@ Each entry in the domain_mapping table represents a Librestream customer integra
 
 The majority of the work occurs on the backend server. It is responsible for:
   - OpenID verification (if enabled)
-  - Retrieving details about the selected Activity
   - Getting and returning the responsible(s) and contact names and addresses for the selected Activity
     - */api/v1/fsm/connections*
   - Responding to requests to begin an Onsight Connect session
     - */api/v1/fsm/connection*
+  - Retrieving details about the selected Activity
+    - */api/v1/fsm/activity*
+  - Retrieving a list of Onsite Workspace documents
+    - */api/v1/fsm/workspace-documents*
 
 #### Authentication Notes
 
-The backend provides two public APIs for use by the extension frontend:
+The backend provides four public APIs for use by the extension frontend:
   1) *GET /api/v1/fsm/connection*: takes a caller's email address and a callee's email address,
 returning an Onsight Connect URI. Opening the returned URI will open Onsight connect and initiate the call.
       - This API is used by both the mobile and web frontends and as such must be available without authentication.
@@ -108,9 +111,22 @@ returning an Onsight Connect URI. Opening the returned URI will open Onsight con
       all participants to enter their credentials before the call can proceed.
   2) *GET /api/vi/fsm/connections*: takes a set of FSM account details AND an FSM Activity, returning
 a list of */api/v1/fsm/connection* URLs corresponding to the Activity's assigned responsibles and contact, or FSM Activity details.
-      - This API will return Activity Details for Workspace integration if "fromEmail" is not specified in the request.
       - This API is used exclusively by the FSM web frontend and as such can be restricted to authenticated users only.
       - This API requires a JWT Bearer token which can be obtained by initiaing an authentication flow via */auth/provider*.
+        - If the customer is configured to use a 3rd-party OpenID Connect provider, this will redirect the end-user to
+        the provider's login/consent screen.
+        - If no OpenID Connect provider is configured, a simple authentication is performed to ensure that the logged-in FSM
+        user has a corresponding entry in the extension's database.
+  3) *GET /api/v1/fsm/activity*: takes a set of FSM account details AND an FSM Activity,
+returning FSM Activity Details.
+      - This API is used exclusively by the FSM web frontend and as such can be restricted to authenticated users only.
+  4) *GET /api/vi/fsm/workspace-documents*: takes the logged-in FSM users email address AND an FSM Activity code, returning
+a list of Onsite Workspace documents corresponding to the FSM Activity Code. Opening the documents download URL will 
+open Onsight Workspace for the selected document.
+        - This API is used exclusively by the FSM web frontend and as such can be restricted to authenticated users only.        
+        - While the API itself is not protected, the Onsight Workspace application will still require
+      the logged-in FSM user to enter their credentials before viewing the Workspace document.
+        - This API requires a JWT Bearer token which can be obtained by initiaing an authentication flow via */auth/provider*.
         - If the customer is configured to use a 3rd-party OpenID Connect provider, this will redirect the end-user to
         the provider's login/consent screen.
         - If no OpenID Connect provider is configured, a simple authentication is performed to ensure that the logged-in FSM
@@ -123,8 +139,10 @@ a list of */api/v1/fsm/connection* URLs corresponding to the Activity's assigned
 The extension's web frontend uses the FSM shell SDK to retrieve the FSM user's account, company, and user IDs.
 These credentials are passed to the backend to optionally verify the FSM user's identity via a 3rd-party OpenID Connect provider.
 
-Once verified, the frontend makes requests to the backend (*/api/v1/fsm/connections*) to display available Onsight connections
-or activity details for the currently-selected Activity.
+Once verified, the frontend makes requests to the backend (*/api/v1/fsm/connections*) to display available Onsight connections.
+
+The 'Import Assets' button will populate an accordion menu of the workspace documents tagged with the currently selected activity code.
+Each document item will provide details such as external metadata, document type, document title, and download URL from Onsite Workspace.
 
 #### Mobile
 
@@ -137,4 +155,5 @@ does not provide the same level of functionality:
       directly to the mobile extension's frontend as query parameters.
   - The mobile app user is assumed to be the field tech/responsible person for the given Activity.
     - The only person available for an Onsight Call becomes the designated expert.
-  - Currently Workspace integration is not supported.
+  - The Workspace integration link will launch Onsite Workspace in a browser with a filter query 
+  showing all documents tagged with the current activity code.

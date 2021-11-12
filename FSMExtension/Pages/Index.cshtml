@@ -267,7 +267,7 @@
             const activityId = sessionStorage.getItem("activityId");
             const fromEmail = sessionStorage.getItem("fromEmail");
 
-            await fetch("/api/v1/fsm/connections?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
+            await fetch("/api/v1/fsm/activity?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
                 method: "GET",
                 mode: "cors",
                 credentials: "include",
