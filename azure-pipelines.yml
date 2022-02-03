@@ -1,0 +1,18 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- group: our-variables
+
+steps:
+# Keep GitHub repo in-sync
+- powershell: |
+   git remote add github $env:MAPPED_GITHUB_URL
+   git push github main
+   git push github --tags
+
+  env:
+    MAPPED_GITHUB_URL: $(GitHubRepoUrl)   # map secret variable into env variable before using it
