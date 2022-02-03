@@ -10,9 +10,9 @@ variables:
 steps:
 # Keep GitHub repo in-sync
 - powershell: |
-   git remote add github $env:MAPPED_GITHUB_URL
-   git push github main
-   git push github --tags
+    git remote add github $env:MAPPED_GITHUB_URL
+    git push github 'refs/remotes/origin/*:refs/heads/*'
+    git push github 'refs/tags/*:refs/tags/*'
 
   env:
     MAPPED_GITHUB_URL: $(GitHubRepoUrl)   # map secret variable into env variable before using it
