@@ -8,10 +8,10 @@ variables:
 - group: our-variables
 
 steps:
-# Keep GitHub repo in-sync
+# Keep GitHub's 'main' branch in-sync
 - powershell: |
     git remote add github $env:MAPPED_GITHUB_URL
-    git push github 'refs/remotes/origin/*:refs/heads/*'
+    git push github 'refs/remotes/origin/main:refs/heads/*'
     git push github 'refs/tags/*:refs/tags/*'
 
   env:
