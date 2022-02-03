@@ -11,7 +11,7 @@ steps:
 # Keep GitHub's 'main' branch in-sync
 - powershell: |
     git remote add github $env:MAPPED_GITHUB_URL
-    git push github 'refs/remotes/origin/main:refs/heads/*'
+    git push github 'refs/remotes/origin/main:refs/heads/main'
     git push github 'refs/tags/*:refs/tags/*'
 
   env:
