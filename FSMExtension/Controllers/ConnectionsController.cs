@@ -1,4 +1,5 @@
 ﻿using FSMExtension.Data;
+using FSMExtension.Dtos;
 using FSMExtension.Models;
 using FSMExtension.Models.Fsm;
 using FSMExtension.Repositories;
@@ -128,6 +129,28 @@ namespace FSMExtension.Controllers
                 return NotFound();
 
             return Ok(documents);
+        }
+
+        [HttpPost]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Route("fsm/attachment")]
+        public async Task<IActionResult> InsertAttachment(
+            [FromQuery(Name = "a")] string activityId, 
+            [FromQuery(Name = "ac")] string accountId, 
+            [FromQuery(Name = "c")] string companyId, 
+            [FromQuery(Name = "h")] string cloudHost, 
+            [FromBody] List<Document> documents)
+        {
+            // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
+            var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
+
+            var company = domainMapping.FsmAccount.FindCompany(companyId);
+            if (company == null)
+                return NotFound();
+                
+            var attachments = await FsmApiService.CreateAttachmentAsync(activityId, documents, company, cloudHost, domainMapping.OnsightApiKey);
+
+            return Ok(attachments);
         }
 
         /// <summary>

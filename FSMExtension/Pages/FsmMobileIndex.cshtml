@@ -37,22 +37,22 @@
             return url;
         }
 
-        async function getWorkspaceUrl() {
-            var url = "#";
-            var searchParams = new URLSearchParams(window.location.search);
-            var meta = searchParams.get('meta').split(';');
-            var map = new Map();
-            for (var i = 0; i < meta.length; i++) {
-                var split = meta[i].split(':');
-                map.set(split[0], split[1]);
-            }
-            var activityCode = map.get('act');
+        //async function getWorkspaceUrl() {
+        //    var url = "#";
+        //    var searchParams = new URLSearchParams(window.location.search);
+        //    var meta = searchParams.get('meta').split(';');
+        //    var map = new Map();
+        //    for (var i = 0; i < meta.length; i++) {
+        //        var split = meta[i].split(':');
+        //        map.set(split[0], split[1]);
+        //    }
+        //    var activityCode = map.get('act');
 
-            if (typeof activityCode !== 'undefined') {
-                url = 'https://workspace.librestream.com/onsight/ui/#!/search/default?f="' + activityCode + '"';
-            }
-            return url;
-        }
+        //    if (typeof activityCode !== 'undefined') {
+        //        url = 'https://workspace.librestream.com/onsight/ui/#!/search/default?f="' + activityCode + '"';
+        //    }
+        //    return url;
+        //}
 
         function showMessage(msg) {
             const message = document.querySelector("#message");
@@ -70,7 +70,7 @@
             const toFirst = urlParams.get("toFirst");
             const toLast = urlParams.get("toLast");
             const expertLink = document.querySelector("#contact_expert");
-            const open_workspace = document.querySelector("#open_workspace");
+            //const open_workspace = document.querySelector("#open_workspace");
 
             if (toFirst && toLast) {
                 expertLink.innerHTML = toFirst + ' ' + toLast;
@@ -81,11 +81,11 @@
             let url = await getConnectUrl();
             expertLink.href = url
 
-            url = await getWorkspaceUrl();
-            open_workspace.href = url;
-            if (url !== "#") {
-                open_workspace.setAttribute('target', 'blank_');
-            }
+            //url = await getWorkspaceUrl();
+            //open_workspace.href = url;
+            //if (url !== "#") {
+            //    open_workspace.setAttribute('target', 'blank_');
+            //}
         }
 
         window.onload = async () => {
@@ -107,13 +107,13 @@
                     <td><a id="contact_expert" class="contact-link">Contact Expert</a></td>
                 </tr>
             </table>
-            <div class="subheading">ONSIGHT WORKSPACE</div>
+            @*<div class="subheading">ONSIGHT WORKSPACE</div>
             <span />
             <table width="100%">
                 <tr>
                     <td><a id="open_workspace" class="contact-link">View Uploaded Workspace Files for this Activity</a></td>
                 </tr>
-            </table>
+            </table>*@
         </div>
     </div>
 </body>

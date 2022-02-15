@@ -26,6 +26,7 @@ namespace FSMExtension.Services
         Task<FsmPerson[]> GetPersonsAsync(string cloudHost, CompanyInfo company, params string[] personIds);
         Task<FsmUser> GetUserAsync(string cloudHost, CompanyInfo company, string userId);
         Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, DomainMapping domainMapping, string equipmentId);
+        Task<FsmAttachment[]> CreateAttachmentAsync(string activityId, List<Document> documents, CompanyInfo company, string cloudHost, string apiKey);
     }
 
     /// <summary>
@@ -164,6 +165,67 @@ namespace FSMExtension.Services
             message.Content = body;
 
             return message;
+        }
+        public async Task<FsmAttachment[]> CreateAttachmentAsync(
+            string activityId, 
+            List<Document> documents, 
+            CompanyInfo company, 
+            string cloudHost, 
+            string apiKey)
+        {
+            // do not return duplicates.
+            var attachments = new FsmAttachment[documents.Count];
+
+            for (var i = 0; i < documents.Count; i++)
+            {
+                var document = documents[i];
+                var assetArr = await GetAssetFromWorkspaceAsync(document, apiKey);
+
+                HttpRequestMessage message = new HttpRequestMessage(HttpMethod.Post, "https://eu.coresuite.com/api/data/v4/Attachment?dtos=Attachment.18");
+                var install = company.Account.FindInstall(cloudHost);
+
+                var token = await GenerateTokenAsync(company.Account.Id, company.Id, install);
+                message.Headers.Authorization = AuthenticationHeaderValue.Parse($"Bearer {token}");
+
+                message.Headers.Add("X-Client-ID", install.ClientId);
+                message.Headers.Add("X-Client-Version", install.ClientVersion);
+                message.Headers.Add("X-Account-ID", company.Account.Id);
+                message.Headers.Add("X-Company-ID", company.Id);
+                message.Headers.Add("X-Requested-With", "XMLHttpRequest");
+
+                var attachment = new FsmAttachment();
+                attachment.FileContent = Convert.ToBase64String(assetArr);
+                attachment.FileName = document.title;
+                attachment.Type = document.pictureinfo?.format;
+                attachment.Object = new ActivityObject { objectId = activityId, objectType = "ACTIVITY" };
+                attachment.Description = "Workspace Document";
+                attachment.CreateDateTime = Convert.ToDateTime(document.captureTime);
+                attachment.Title = document.title;
+
+                message.Content = new StringContent(JsonConvert.SerializeObject(attachment), Encoding.UTF8, "application/json");
+
+                var response = await HttpClient.SendAsync(message);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    JObject jObject = JObject.Parse(json);
+                    var item = jObject["data"].First()["attachment"].ToString();
+                    attachments[i] = JsonConvert.DeserializeObject<FsmAttachment>(item);
+                }
+            }
+            return attachments;
+        }
+
+        public async Task<byte[]> GetAssetFromWorkspaceAsync(Document document, string apiKey)
+        {
+            HttpRequestMessage message = new HttpRequestMessage();
+            message.Method = HttpMethod.Get;
+            message.Headers.Add("X-Api-Key", apiKey);
+            message.RequestUri = new Uri(document.downloadUrl);
+
+            var asset = await HttpClient.SendAsync(message);
+            return await asset.Content.ReadAsByteArrayAsync();
         }
 
         private async Task<string> GenerateTokenAsync(string fsmAccountId, string fsmCompanyId, InstallInfo install)

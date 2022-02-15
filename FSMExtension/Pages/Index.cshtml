@@ -310,6 +310,8 @@
                     });
                     html += '</div></div></div>';
                     element.html(html);
+
+                    insertAttachments(asset.documents, activityId, accountId, companyId, cloudHost, token);
                 }
             })
             .catch(error => {
@@ -325,6 +327,27 @@
                 });
                 if (results == 0) {
                     $(".accordion").addClass("ui-state-disabled");
+                }
+            });
+        }
+
+        async function insertAttachments(documents, activityId, accountId, companyId, cloudHost, token) {
+            await fetch('/api/v1/fsm/attachment?a=' + activityId + "&ac=" + accountId + "&c=" + companyId + "&h=" + cloudHost, {
+                method: "POST",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(documents),
+                cache: "no-cache"
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Attachment(s) added into activity " + activityId);
+                } else {
+                    console.error("Failed to attach documents: " + response.statusText);
                 }
             });
         }
