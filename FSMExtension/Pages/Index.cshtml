@@ -21,6 +21,7 @@
     <script src="https://unpkg.com/fsm-shell"></script>
     <link rel="stylesheet" type="text/css" href="~/css/site.css" />
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 </head>
@@ -310,7 +311,6 @@
                     });
                     html += '</div></div></div>';
                     element.html(html);
-
                     insertAttachments(asset.documents, activityId, accountId, companyId, cloudHost, token);
                 }
             })
@@ -331,6 +331,7 @@
         }
 
         async function insertAttachments(documents, activityId, accountId, companyId, cloudHost, token) {
+            $("#spinner").show();
             await fetch('/api/v1/fsm/attachment?a=' + activityId + "&ac=" + accountId + "&c=" + companyId + "&h=" + cloudHost, {
                 method: "POST",
                 mode: "cors",
@@ -349,7 +350,8 @@
                     console.error("Failed to attach documents: " + response.statusText);
                 }
             })
-                .finally(() => {
+            .finally(() => {
+                $("#spinner").hide();
                 $("#importBtn").prop('disabled', false);
             });
         }
@@ -358,38 +360,38 @@
             const WORKSPACE_ROOT_URI = 'https://workspace.librestream.com/onsight/ui/#!/browse/';
             var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
             var content = `
-                        <div class="accordion">
-                            <h3>${document.title}</h3>
-                            <div>
-                                <table>
-                                    <tr><td><b>Document Title</b></td></tr>
-                                    <tr><td>${document.title}</td></tr>
-                                    <tr><td><b>ID</b></td></tr>
-                                    <tr><td>${document.id}</td></tr>
-                                    <tr><td><b>Type</b></td></tr>
-                                    <tr><td>${document.type}</td></tr>
-                                    <tr><td><b>External Metadata</b></td></tr>
-                                    <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
-                                    <tr><td><b>Parent ID</b></td></tr>
-                                    <tr><td>${document.parentID}</td></tr>
-                                    <tr><td><b>Download URL</b></td></tr>
-                                    <tr>
-                                        <td>
-                                            <a class="workspaceLink" target="_blank" href="${downloadUrl}">
-                                                ${downloadUrl}
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <tr><td><b>Onsight Connect Call</b></td></tr>
-                                    <tr><td>211007_210808_fieldtech</td></tr>
-                                    <tr><td><b>Created By</b></td></tr>
-                                    <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
+                            <div class="accordion">
+                                <h3>${document.title}</h3>
+                                <div>
+                                    <table>
+                                        <tr><td><b>Document Title</b></td></tr>
+                                        <tr><td>${document.title}</td></tr>
+                                        <tr><td><b>ID</b></td></tr>
+                                        <tr><td>${document.id}</td></tr>
+                                        <tr><td><b>Type</b></td></tr>
+                                        <tr><td>${document.type}</td></tr>
+                                        <tr><td><b>External Metadata</b></td></tr>
+                                        <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
+                                        <tr><td><b>Parent ID</b></td></tr>
+                                        <tr><td>${document.parentID}</td></tr>
+                                        <tr><td><b>Download URL</b></td></tr>
+                                        <tr>
+                                            <td>
+                                                <a class="workspaceLink" target="_blank" href="${downloadUrl}">
+                                                    ${downloadUrl}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <tr><td><b>Onsight Connect Call</b></td></tr>
+                                        <tr><td>211007_210808_fieldtech</td></tr>
+                                        <tr><td><b>Created By</b></td></tr>
+                                        <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
 
-                                    <tr><td><b>Owner</b></td></tr>
-                                    <tr><td>${document.author}</td></tr>
-                                </table>
-                            </div>
-                        </div>`;
+                                        <tr><td><b>Owner</b></td></tr>
+                                        <tr><td>${document.author}</td></tr>
+                                    </table>
+                                </div>
+                            </div>`;
             return content;
         }
 
@@ -457,7 +459,17 @@
             </table>
         </div>
         <div id="contentImportWorkspace" style="display: none;">
-            <button style="margin:15px auto 15px auto;" class="center" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
+            <div style="display: flex;">
+                <div style="width: 33%;"></div>
+                <div style="width: 33%;">
+                    <button style="margin:15px auto 15px auto;" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
+                </div>
+                <div style="width: 33%; text-align: center">
+                    <div style="display: none; margin: 14px auto 15px auto; color: #00a3e0;" id="spinner" class="hidden spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
             <div id="workspaceAssets"></div>
         </div>
     </div>
