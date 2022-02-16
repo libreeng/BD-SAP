@@ -1,5 +1,4 @@
 ﻿using FSMExtension.Data;
-using FSMExtension.Dtos;
 using FSMExtension.Models;
 using FSMExtension.Models.Fsm;
 using FSMExtension.Repositories;
@@ -139,7 +138,7 @@ namespace FSMExtension.Controllers
             [FromQuery(Name = "ac")] string accountId, 
             [FromQuery(Name = "c")] string companyId, 
             [FromQuery(Name = "h")] string cloudHost, 
-            [FromBody] List<Document> documents)
+            [FromBody] List<OnsightWorkspaceDocument> documents)
         {
             // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
             var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);

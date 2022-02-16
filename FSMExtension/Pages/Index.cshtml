@@ -318,7 +318,6 @@
                 console.error("Failed to fetch workspace documents: " + error);
             })
             .finally(() => {
-                $("#importBtn").prop('disabled', false);
                 $(".accordion").accordion({
                     header: "> h3:not(.item)",
                     heightStyle: "content",
@@ -349,6 +348,9 @@
                 } else {
                     console.error("Failed to attach documents: " + response.statusText);
                 }
+            })
+                .finally(() => {
+                $("#importBtn").prop('disabled', false);
             });
         }
 

@@ -12,6 +12,7 @@ namespace FSMExtension.Services
         /// <param name="apiKey">Onsight API key of the (from) caller.</param>
         /// <param name="activityCode">Activity Code which the Workspace Document metadata will be retrieved.</param>
         /// <returns></returns>
+        Task<byte[]> DownloadWorkspaceDocumentAsync(string downloadUrl, string apiKey);
         Task<string> GetWorkspaceDocumentsAsync(string apiKey, string activityCode);
     }
 
@@ -27,6 +28,17 @@ namespace FSMExtension.Services
 
         private HttpClient HttpClient { get; }
 
+        public async Task<byte[]> DownloadWorkspaceDocumentAsync(string downloadUrl, string apiKey)
+        {
+            var request = new CreateOnsightDocumentsRequestMessage(apiKey, new Uri(downloadUrl));
+
+            var response = await HttpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
 
         public async Task<string> GetWorkspaceDocumentsAsync(string apiKey, string activityCode)
         {
@@ -50,7 +62,13 @@ namespace FSMExtension.Services
                 Method = HttpMethod.Get;
                 Headers.Add("X-Api-Key", apiKey);
             }
-        }
 
+            public CreateOnsightDocumentsRequestMessage(string apiKey, Uri downloadUrl)
+            {
+                RequestUri = downloadUrl;
+                Method = HttpMethod.Get;
+                Headers.Add("X-Api-Key", apiKey);
+            }
+        }
     }
 }
