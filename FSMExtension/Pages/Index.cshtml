@@ -288,6 +288,7 @@
                     return response.json();
                 } else {
                     console.error("Failed to fetch connections: " + response.statusText);
+                    $("#importBtn").prop('disabled', false);
                 }
             })
             .then(activity => {
@@ -301,6 +302,7 @@
                 if (asset.type.includes("https://tools.ietf.org/html/rfc7231")) {
                     // The URL returned by the backend indicates that Onsight cannot locate the contact
                     alert("There was a problem trying to locate " + fromEmail + ". Please use the Onsight Platform Manager to ensure this person is a member of your Onsight domain and try again.");
+                    $("#importBtn").prop('disabled', false);
                 } else {
                     results = asset.totalResults;
                     html += `
@@ -317,6 +319,7 @@
             })
             .catch(error => {
                 console.error("Failed to fetch workspace documents: " + error);
+                $("#importBtn").prop('disabled', false);
             })
             .finally(() => {
                 $(".accordion").accordion({
@@ -347,9 +350,14 @@
             })
             .then(response => {
                 if (response.ok) {
-                    console.log("Attachment(s) added into activity " + activityId);
+                    return response.json();
                 } else {
-                    console.error("Failed to attach documents: " + response.statusText);
+                    console.error("Failed to attach documents: " + response.status);
+                }
+            })
+            .then(response => {
+                if (response != undefined) {
+                    console.log(response.length + " Attachment(s) added into activity " + activityId);
                 }
             })
             .finally(() => {
