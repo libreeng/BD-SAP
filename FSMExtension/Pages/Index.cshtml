@@ -311,6 +311,7 @@
                     });
                     html += '</div></div></div>';
                     element.html(html);
+
                     insertAttachments(asset.documents, activityId, accountId, companyId, cloudHost, token);
                 }
             })
@@ -332,6 +333,7 @@
 
         async function insertAttachments(documents, activityId, accountId, companyId, cloudHost, token) {
             $("#spinner").show();
+            $("#importBtn").text("Downloading...");
             await fetch('/api/v1/fsm/attachment?a=' + activityId + "&ac=" + accountId + "&c=" + companyId + "&h=" + cloudHost, {
                 method: "POST",
                 mode: "cors",
@@ -352,6 +354,7 @@
             })
             .finally(() => {
                 $("#spinner").hide();
+                $("#importBtn").text("Import Assets");
                 $("#importBtn").prop('disabled', false);
             });
         }
@@ -366,19 +369,11 @@
                                     <table>
                                         <tr><td><b>Document Title</b></td></tr>
                                         <tr><td>${document.title}</td></tr>
-                                        <tr><td><b>ID</b></td></tr>
-                                        <tr><td>${document.id}</td></tr>
-                                        <tr><td><b>Type</b></td></tr>
-                                        <tr><td>${document.type}</td></tr>
-                                        <tr><td><b>External Metadata</b></td></tr>
-                                        <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
-                                        <tr><td><b>Parent ID</b></td></tr>
-                                        <tr><td>${document.parentID}</td></tr>
                                         <tr><td><b>Download URL</b></td></tr>
                                         <tr>
                                             <td>
                                                 <a class="workspaceLink" target="_blank" href="${downloadUrl}">
-                                                    ${downloadUrl}
+                                                    Launch Onsite Workspace
                                                 </a>
                                             </td>
                                         </tr>
@@ -386,9 +381,16 @@
                                         <tr><td>211007_210808_fieldtech</td></tr>
                                         <tr><td><b>Created By</b></td></tr>
                                         <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
-
                                         <tr><td><b>Owner</b></td></tr>
                                         <tr><td>${document.author}</td></tr>
+                                        <tr><td><b>Type</b></td></tr>
+                                        <tr><td>${document.type}</td></tr>
+                                        <tr><td><b>ID</b></td></tr>
+                                        <tr><td>${document.id}</td></tr>
+                                        <tr><td><b>Parent ID</b></td></tr>
+                                        <tr><td>${document.parentID}</td></tr>
+                                        <tr><td><b>External Metadata</b></td></tr>
+                                        <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
                                     </table>
                                 </div>
                             </div>`;
@@ -462,7 +464,7 @@
             <div style="display: flex;">
                 <div style="width: 33%;"></div>
                 <div style="width: 33%;">
-                    <button style="margin:15px auto 15px auto;" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
+                    <button style="white-space: nowrap; margin: 15px auto 15px auto;" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
                 </div>
                 <div style="width: 33%; text-align: center">
                     <div style="display: none; margin: 14px auto 15px auto; color: #00a3e0;" id="spinner" class="hidden spinner-border" role="status">
