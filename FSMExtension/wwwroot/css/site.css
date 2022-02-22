@@ -55,6 +55,11 @@
     color: #00a3e0;
 }
 
+.ui-accordion .ui-accordion-content .workspaceLink {
+    color: #0064A3;
+    text-decoration: underline;
+}
+
 .ui-accordion .ui-accordion-content {
     padding: 0 !important;
 }
