@@ -277,61 +277,65 @@
                 },
                 cache: "no-cache"
             })
-            .then(response => {
-                if (response.status === 401) {
-                    /* Forbidden; assume this means that our existing token is no longer valid and force a re-login. */
-                    sessionStorage.removeItem("token");
-                    sessionStorage.removeItem("fromEmail");
-                    location.reload();
-                    alert("There was a problem trying to import assets. Please try again.");
-                } else if (response.ok) {
-                    return response.json();
-                } else {
-                    console.error("Failed to fetch connections: " + response.statusText);
-                    $("#importBtn").prop('disabled', false);
-                }
-            })
-            .then(activity => {
-                if (!activity.code) {
-                    return;
-                }
-                return fetch('/api/v1/fsm/workspace-documents?activityCode=' + activity.code + '&from=' + fromEmail);
-            })
-            .then(response => response.json())
-            .then(asset => {
-                if (asset.type.includes("https://tools.ietf.org/html/rfc7231")) {
-                    // The URL returned by the backend indicates that Onsight cannot locate the contact
-                    alert("There was a problem trying to locate " + fromEmail + ". Please use the Onsight Platform Manager to ensure this person is a member of your Onsight domain and try again.");
-                    $("#importBtn").prop('disabled', false);
-                } else {
-                    results = asset.totalResults;
-                    html += `
-                            <div style="margin-bottom: 15px;"><div class="accordion">
-                            <h3>Onsight Workspace Documents (${results})</h3><div>`;
-                    asset.documents.forEach(document => {
-                        html += generateHtml(document)
-                    });
-                    html += '</div></div></div>';
-                    element.html(html);
+                .then(response => {
+                    if (response.status === 401) {
+                        /* Forbidden; assume this means that our existing token is no longer valid and force a re-login. */
+                        sessionStorage.removeItem("token");
+                        sessionStorage.removeItem("fromEmail");
+                        location.reload();
+                        alert("There was a problem trying to import assets. Please try again.");
+                    } else if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error("Failed to fetch connections: " + response.statusText);
+                        $("#importBtn").prop('disabled', false);
+                    }
+                })
+                .then(activity => {
+                    if (!activity.code) {
+                        return;
+                    }
+                    return fetch('/api/v1/fsm/workspace-documents?activityCode=' + activity.code + '&from=' + fromEmail);
+                })
+                .then(response => response.json())
+                .then(asset => {
+                    if (asset.type.includes("https://tools.ietf.org/html/rfc7231")) {
+                        // The URL returned by the backend indicates that Onsight cannot locate the contact
+                        alert("There was a problem trying to locate " + fromEmail + ". Please use the Onsight Platform Manager to ensure this person is a member of your Onsight domain and try again.");
+                        $("#importBtn").prop('disabled', false);
+                    } else {
+                        results = asset.totalResults;
+                        html += `
+                                            <div style="margin-bottom: 15px;"><div class="accordion">
+                                            <h3>Onsight Workspace Documents (${results})</h3><div>`;
+                        asset.documents.forEach(document => {
+                            html += generateHtml(document)
+                        });
+                        html += '</div></div></div>';
+                        element.html(html);
 
-                    insertAttachments(asset.documents, activityId, accountId, companyId, cloudHost, token);
-                }
-            })
-            .catch(error => {
-                console.error("Failed to fetch workspace documents: " + error);
-                $("#importBtn").prop('disabled', false);
-            })
-            .finally(() => {
-                $(".accordion").accordion({
-                    header: "> h3:not(.item)",
-                    heightStyle: "content",
-                    active: false,
-                    collapsible: true
+                        insertAttachments(asset.documents, activityId, accountId, companyId, cloudHost, token);
+                    }
+                })
+                .catch(error => {
+                    console.error("Failed to fetch workspace documents: " + error);
+                    $("#importBtn").prop('disabled', false);
+                })
+                .finally(() => {
+                    var classes = {
+                        "ui-accordion-content": "padd2"
+                    };
+                    $(".accordion").accordion({
+                        header: "> h3:not(.item)",
+                        heightStyle: "content",
+                        active: false,
+                        collapsible: true,
+                        classes: classes
+                    });
+                    if (results == 0) {
+                        $(".accordion").addClass("ui-state-disabled");
+                    }
                 });
-                if (results == 0) {
-                    $(".accordion").addClass("ui-state-disabled");
-                }
-            });
         }
 
         async function insertAttachments(documents, activityId, accountId, companyId, cloudHost, token) {
@@ -348,60 +352,59 @@
                 body: JSON.stringify(documents),
                 cache: "no-cache"
             })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    console.error("Failed to attach documents: " + response.status);
-                }
-            })
-            .then(response => {
-                if (response != undefined) {
-                    console.log(response.length + " Attachment(s) added into activity " + activityId);
-                }
-            })
-            .finally(() => {
-                $("#spinner").hide();
-                $("#importBtn").text("Import Assets");
-                $("#importBtn").prop('disabled', false);
-            });
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error("Failed to attach documents: " + response.status);
+                    }
+                })
+                .then(response => {
+                    if (response != undefined) {
+                        console.log(response.length + " Attachment(s) added into activity " + activityId);
+                    }
+                })
+                .finally(() => {
+                    $("#spinner").hide();
+                    $("#importBtn").text("Import Assets");
+                    $("#importBtn").prop('disabled', false);
+                });
         }
 
         function generateHtml(document) {
             const WORKSPACE_ROOT_URI = 'https://workspace.librestream.com/onsight/ui/#!/browse/';
             var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
-            var content = `
-                            <div class="accordion">
-                                <h3>${document.title}</h3>
-                                <div>
-                                    <table>
-                                        <tr><td><b>Document Title</b></td></tr>
-                                        <tr><td>${document.title}</td></tr>
-                                        <tr><td><b>Download URL</b></td></tr>
-                                        <tr>
-                                            <td>
-                                                <a class="workspaceLink" target="_blank" href="${downloadUrl}">
-                                                    Launch Onsite Workspace
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        <tr><td><b>Onsight Connect Call</b></td></tr>
-                                        <tr><td>211007_210808_fieldtech</td></tr>
-                                        <tr><td><b>Created By</b></td></tr>
-                                        <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
-                                        <tr><td><b>Owner</b></td></tr>
-                                        <tr><td>${document.author}</td></tr>
-                                        <tr><td><b>Type</b></td></tr>
-                                        <tr><td>${document.type}</td></tr>
-                                        <tr><td><b>ID</b></td></tr>
-                                        <tr><td>${document.id}</td></tr>
-                                        <tr><td><b>Parent ID</b></td></tr>
-                                        <tr><td>${document.parentID}</td></tr>
-                                        <tr><td><b>External Metadata</b></td></tr>
-                                        <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
-                                    </table>
-                                </div>
-                            </div>`;
+            var content = `<div class="accordion" id="accordianChild">
+                            <h3>${document.title}</h3>
+                            <div>
+                                <table>
+                                    <tr><td><b>Document Title</b></td></tr>
+                                    <tr><td>${document.title}</td></tr>
+                                    <tr><td><b>Download URL</b></td></tr>
+                                    <tr>
+                                        <td>
+                                            <a class="workspaceLink" target="_blank" href="${downloadUrl}">
+                                                Launch Onsite Workspace
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr><td><b>Onsight Connect Call</b></td></tr>
+                                    <tr><td>211007_210808_fieldtech</td></tr>
+                                    <tr><td><b>Created By</b></td></tr>
+                                    <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
+                                    <tr><td><b>Owner</b></td></tr>
+                                    <tr><td>${document.author}</td></tr>
+                                    <tr><td><b>Type</b></td></tr>
+                                    <tr><td>${document.type}</td></tr>
+                                    <tr><td><b>ID</b></td></tr>
+                                    <tr><td>${document.id}</td></tr>
+                                    <tr><td><b>Parent ID</b></td></tr>
+                                    <tr><td>${document.parentID}</td></tr>
+                                    <tr><td><b>External Metadata</b></td></tr>
+                                    <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
+                                </table>
+                            </div>
+                        </div>`;
             return content;
         }
 
@@ -441,46 +444,108 @@
                 const msg = row.insertCell(0);
                 msg.innerHTML = "<span>None available</span>";
             }
-        }</script>
+        }
 
-    <div>
-        <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
-        <div class="heading center">REMOTE EXPERT ASSISTANCE</div>
+        $(function () {
+            var classes = {
+                "ui-selectmenu-text": "font",
+                "ui-selectmenu-button": "buttonPadd"
+            };
+            $("#myWorkflows").selectmenu({
+                classes: classes
+            })
+            .selectmenu("menuWidget")
+            .menu({
+                classes: {
+                    "ui-menu-item": "font"
+                }
+            });
 
-        <div id="login" style="display: none; padding-top: 50px;">
-            <span class="center">Loading...</span>
-        </div>
-        <div id="noShell" class="center" style="display: none;">
-            <p>Extension needs to run inside Shell</p>
-        </div>
-        <div id="message" class="center" style="display: none; padding-top: 50px;">
-            <span>&nbsp;</span>
-        </div>
-        <div id="content" style="display: none;">
-            <div style="padding: 0px 0px 10px 0px;">Select a link below to initiate an Onsight Connect call with individuals assigned to this activity.</div>
+            $("button").button().addClass("buttonPadd");
+        });
 
-            <div class="subheading">ASSIGNED FIELD RESOURCE(S)</div>
-            <table id="fieldTechsTable" width="100%">
-                <tr></tr>
-            </table>
-            <div class="subheading">ASSIGNED EXPERT/HELPDESK RESOURCE(S)</div>
-            <table id="expertsTable" width="100%">
-                <tr></tr>
-            </table>
-        </div>
-        <div id="contentImportWorkspace" style="display: none;">
-            <div style="display: flex;">
-                <div style="width: 33%;"></div>
-                <div style="width: 33%;">
-                    <button style="white-space: nowrap; margin: 15px auto 15px auto;" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
-                </div>
-                <div style="width: 33%; text-align: center">
-                    <div style="display: none; margin: 14px auto 15px auto; color: #00a3e0;" id="spinner" class="hidden spinner-border" role="status">
-                        <span class="sr-only">Loading...</span>
+        $(function () {
+            var icons = {
+                header: "ui-icon-plus",
+                activeHeader: "ui-icon-minus"
+            };
+            var classes = {
+                "ui-accordion-header": "white",
+                "ui-accordion-header-collapsed": "white",
+                "ui-accordion-header-active": "white",
+                "ui-accordion-content": "padd font transparent"
+            };
+            $("#accordionMain").accordion({
+                icons: icons,
+                classes: classes,
+                collapsible: true,
+                heightStyle: "content"
+            });
+        });
+
+    </script>
+
+    <div id="accordionMain">
+        <h3>Onsight Connect</h3>
+        <div>
+            <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
+            <div class="heading center">REMOTE EXPERT ASSISTANCE</div>
+
+            <div id="login" style="display: none; padding-top: 50px;">
+                <span class="center">Loading...</span>
+            </div>
+            <div id="noShell" class="center" style="display: none;">
+                <p>Extension needs to run inside Shell</p>
+            </div>
+            <div id="message" class="center" style="display: none; padding-top: 50px;">
+                <span>&nbsp;</span>
+            </div>
+            <div id="content" style="display: none;">
+                <div style="padding: 0px 0px 10px 0px;">Select a link below to initiate an Onsight Connect call with individuals assigned to this activity.</div>
+
+                <div class="subheading">ASSIGNED FIELD RESOURCE(S)</div>
+                <table id="fieldTechsTable" width="100%">
+                    <tr></tr>
+                </table>
+                <div class="subheading">ASSIGNED EXPERT/HELPDESK RESOURCE(S)</div>
+                <table id="expertsTable" width="100%">
+                    <tr></tr>
+                </table>
+            </div>
+            <div id="contentImportWorkspace" style="display: none;">
+                <div style="display: flex;">
+                    <div style="width: 33%;"></div>
+                    <div style="width: 33%;">
+                        <button style="white-space: nowrap; margin: 15px auto 15px auto;" id="importBtn" onclick="getWorkspaceDocuments()">Import Assets</button>
+                    </div>
+                    <div style="width: 33%; text-align: center">
+                        <div style="display: none; margin: 14px auto 15px auto; color: #00a3e0;" id="spinner" class="hidden spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
                     </div>
                 </div>
+                <div id="workspaceAssets"></div>
             </div>
-            <div id="workspaceAssets"></div>
+        </div>
+
+        <h3>Onsight Flow</h3>
+        <div>
+            <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
+            <div class="heading center">ONSIGHT FLOW</div>
+
+            <label for="myWorkflows">Workflows:</label>
+            <select name="myWorkflows" id="myWorkflows">
+                <option>1 Workflow One</option>
+                <option>2 Workflow Too</option>
+                <option selected="selected">3 Workflow Three</option>
+                <option>Four Work Flow 4</option>
+                <option>5 Workflow FIVE</option>
+            </select>
+
+            <br />
+            <br />
+            <button class="font">Start Workflow</button>
+            <button class="font">Import Completed Workflows</button>
         </div>
     </div>
 

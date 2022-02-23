@@ -25,7 +25,6 @@
     color: #ffffff;
     background: #003963;
     font-family: TradeGothic18;
-    padding: 0px 10px;
 }
 
 .center {
@@ -51,36 +50,86 @@
     font-size: inherit;
 }
 
-.ui-accordion .ui-accordion-content .workspaceLink:hover {
+#accordianChild .ui-accordion .ui-accordion-content .workspaceLink:hover {
     color: #00a3e0;
 }
 
-.ui-accordion .ui-accordion-content .workspaceLink {
+#accordianChild .ui-accordion .ui-accordion-content .workspaceLink {
     color: #0064A3;
     text-decoration: underline;
 }
 
-.ui-accordion .ui-accordion-content {
-    padding: 0 !important;
+.white {
+    background: none;
+    background-color: #ffffff;
 }
 
-.ui-accordion-content {
+#accordionMain .ui-state-default {
+    background: none;
+    background-color: #ffffff;
+}
+
+.padd {
+    padding: 0px 10px !important;
+    min-height: 350px !important;
+}
+
+.buttonPadd {
+    padding: 2px 2px !important;
+}
+
+.padd2 {
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+.padd2 a {
+    color: #000000 !important;
+    text-decoration: underline;
+}
+
+
+.left {
     text-align: left !important;
 }
 
-.accordion .ui-accordion-header {
+.font {
+    font-family: TradeGothic18 !important;
+    font-size: 1rem !important;
+}
+
+#accordionMain .ui-accordion-header {
+    margin: 0;
+}
+
+.transparent {
+    background-color: transparent;
+    color: #ffffff;
+}
+
+#accordionMain .ui-widget-content {
+    color: #ffffff;
+    background-color: transparent;
+}
+
+#accordionMain a {
+    color: #ffffff;
+}
+
+#accordianChild .ui-accordion-header {
     font-family: TradeGothic18;
 }
 
-.accordion .ui-accordion-content {
+#accordianChild .ui-accordion-content {
     font-family: TradeGothic18;
 }
 
-.accordion .ui-accordion-header.ui-state-active {
+#accordianChild .ui-accordion-header.ui-state-active {
     background: #00a3e0;
 }
 
-.accordion .ui-accordion-header.ui-state-hover {
+#accordianChild .ui-accordion-header.ui-state-hover {
     background: #00a3e0;
 }
 
@@ -89,7 +138,7 @@ h3 {
     font-family: TradeGothic18;
 }
 
-.accordion table {
+#accordianChild table {
     word-break: break-word;
     font-family: TradeGothic18;
     padding: 10px 0px 10px 10px;
