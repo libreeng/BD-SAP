@@ -22,11 +22,14 @@ namespace FSMExtension.Services
     public interface IFsmApiService
     {
         Task<FsmAttachment[]> CreateAttachmentAsync(string activityId, List<OnsightWorkspaceDocument> documents, CompanyInfo company, string cloudHost, string apiKey);
+        Task<List<FsmAttachment>> CreateFlowAttachmentForActivityAsync(string activityId, List<JobOfWorkFlow> documents, CompanyInfo company, string cloudHost, string apiKey);
         Task<FsmActivity> GetActivityAsync(string cloudHost, CompanyInfo company, string activityId);
         Task<FsmContact> GetContactAsync(string cloudHost, CompanyInfo company, string contactId);
         Task<FsmEquipment> GetEquipmentAsync(string cloudHost, CompanyInfo company, DomainMapping domainMapping, string equipmentId);
         Task<FsmPerson[]> GetPersonsAsync(string cloudHost, CompanyInfo company, params string[] personIds);
         Task<FsmUser> GetUserAsync(string cloudHost, CompanyInfo company, string userId);
+        Task<string> GetActivityUdfAsync(string cloudHost, CompanyInfo company, DomainMapping domainMapping, string activityId);
+        Task<string> UpdateActivtySelectedOption(string selectedWorkflowOptionId, string cloudHost, CompanyInfo company, string activityId);
     }
 
     /// <summary>
@@ -223,9 +226,61 @@ namespace FSMExtension.Services
             return attachments;
         }
 
+        public async Task<List<FsmAttachment>> CreateFlowAttachmentForActivityAsync(
+            string activityId,
+            List<JobOfWorkFlow> documents,
+            CompanyInfo company,
+            string cloudHost,
+            string apiKey)
+        {
+            // do not re-save attachments
+            var existingAttachmentTitles = await GetExistingAttachmentsForActivity(company, cloudHost, activityId);
+
+            var attachments = new List<FsmAttachment>();
+
+            for (var i = 0; i < documents.Count; i++)
+            {
+                var document = documents[i];
+                if (!existingAttachmentTitles.Contains(document.metadata.jobTitle))
+                {
+                    OnsightWorkspaceService ows = new OnsightWorkspaceService(HttpClient);
+                    var assetArr = await ows.DownloadWorkspaceDocumentAsync(document.completedReportURL, apiKey);
+                    if (assetArr == null)
+                    {
+                        return null;
+                    }
+
+                    var attachment = new FsmAttachment();
+                    attachment.FileContent = Convert.ToBase64String(assetArr);
+                    attachment.FileName = document.metadata.jobTitle;
+                    attachment.Type = "PDF";
+                    attachment.Object = new ActivityObject { ObjectId = activityId, ObjectType = "ACTIVITY" };
+                    attachment.Description = "Completed Workflow Report";
+                    attachment.CreateDateTime = Convert.ToDateTime(document.metadata.created);
+                    attachment.Title = document.metadata.jobTitle;
+                    var content = new StringContent(JsonConvert.SerializeObject(attachment), Encoding.UTF8, "application/json");
+
+                    var requestUri = new Uri($"https://{cloudHost}/api/data/v4/Attachment?dtos=Attachment.{AttachmentVersion}");
+                    var message = await CreateMessageAsync(HttpMethod.Post, requestUri, cloudHost, company, content);
+                    message.Headers.Add("X-Requested-With", "XMLHttpRequest");
+
+                    var response = await HttpClient.SendAsync(message);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        JObject jObject = JObject.Parse(json);
+                        var item = jObject["data"].First()["attachment"].ToString();
+                        attachments.Add(JsonConvert.DeserializeObject<FsmAttachment>(item));
+                    }
+                }
+            }
+            return attachments;
+        }
+
         private async Task<List<string>> GetExistingAttachmentsForActivity(CompanyInfo company, string cloudHost, string activityId)
         {
-            var query = $"SELECT att.id, att.fileName FROM Attachment att WHERE att.object.objectId = '{activityId}' and att.description = 'Workspace Document'";
+            var query = $"SELECT att.id, att.fileName FROM Attachment att WHERE att.object.objectId = '{activityId}' and att.description = 'Workspace Document' OR att.description = 'Completed Workflow Report'";
             var requestUri = new Uri($"https://{cloudHost}/api/query/v1?dtos=Attachment.{AttachmentVersion}&query={query}");
             var message = await CreateMessageAsync(HttpMethod.Get, requestUri, cloudHost, company);
 
@@ -318,6 +373,67 @@ namespace FSMExtension.Services
                     PositionName = string.Empty
                 }
             };
+        }
+
+        public async Task<string> GetActivityUdfAsync(string cloudHost, CompanyInfo company, DomainMapping domainMapping, string activityId)
+        {
+            var customWorkFlowMapping = domainMapping.FsmAccount.Customization?.SelectedWorkFlow;
+
+            var queryApiRequest = new Uri($"https://{cloudHost}/api/query/v1?dtos=Activity.{ActivityVersion}");
+            var body = JsonContent.Create(new { query = $"SELECT act.id, act.code, act.udf.SelectedWorkflowId FROM Activity act WHERE act.id = '{activityId}'" });
+
+            var message = await CreateMessageAsync(HttpMethod.Post, queryApiRequest, cloudHost, company, body);
+
+            var eqpResult = await GetDtoAsync<FsmActivityResult>(message, "act");
+            if (eqpResult == null || eqpResult.UdfValues == null || eqpResult.UdfValues.Count == 0)
+                return null;
+
+            // Map each user-defined field by its name
+            var udfMap = eqpResult.UdfValues.ToDictionary(udf => udf.Name);
+
+            var selectedWorkFlowId = string.Empty;
+            if (customWorkFlowMapping != null)
+            {
+                Logger.LogInformation($"Found a customWorkOrderMapping. Name Field={customWorkFlowMapping}");
+                selectedWorkFlowId = udfMap.GetValueOrDefault(customWorkFlowMapping)?.Value ?? string.Empty;
+            }
+
+            return selectedWorkFlowId;
+        }
+
+        public async Task<string> UpdateActivtySelectedOption(string selectedWorkflowOptionId, string cloudHost, CompanyInfo company, string activityId)
+        {
+            var responseString = string.Empty;
+            var meta = new Meta() {
+                ExternalId = "selectedWorkflowId"
+            };
+            var udfValue = new UdfValue() {
+                Meta = meta,
+                Value = selectedWorkflowOptionId
+            };
+            var udfValues = new List<UdfValue>();
+            udfValues.Add(udfValue);
+            var udf = new fsmUdf() { 
+                UdfValues = udfValues
+            }; 
+
+            var queryApiRequest = new Uri("https://eu.coresuite.com/api/data/v4/Activity/" + activityId + "?dtos=Activity."+ ActivityVersion + "&forceUpdate=true");
+            var body = JsonConvert.SerializeObject(udf);
+            var buffer = Encoding.UTF8.GetBytes(body);
+            var byteContent = new ByteArrayContent(buffer);
+            byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+            var message = await CreateMessageAsync(HttpMethod.Patch, queryApiRequest, cloudHost, company, byteContent);
+
+            var httpClient = new HttpClient();
+
+            var response = await httpClient.SendAsync(message);
+
+            if (response.IsSuccessStatusCode)
+            {
+                responseString = await response.Content.ReadAsStringAsync();
+            }
+            return responseString;
         }
     }
 }

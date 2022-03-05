@@ -21,12 +21,14 @@ namespace FSMExtension.Controllers
         public ConnectionsController(
             IOnsightConnectService connectService,
             IOnsightWorkspaceService workspaceService,
+            IOnsightFlowService onsightFlowService,
             IFsmApiService fsmApiService,
             IDomainMappingRepository domainRepo,
             ILogger<ConnectionsController> logger)
         {
             OnsightConnectService = connectService;
             OnsightWorkspaceService = workspaceService;
+            OnsightFlowService = onsightFlowService;
             FsmApiService = fsmApiService;
             DomainRepository = domainRepo;
             FsmMetadataBuilder = new FsmMetadataBuilder();
@@ -36,6 +38,8 @@ namespace FSMExtension.Controllers
         private IOnsightConnectService OnsightConnectService { get; }
 
         private IOnsightWorkspaceService OnsightWorkspaceService { get; }
+
+        private IOnsightFlowService OnsightFlowService { get; }
 
         private IFsmApiService FsmApiService { get; }
 
@@ -134,10 +138,10 @@ namespace FSMExtension.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("fsm/attachment")]
         public async Task<IActionResult> InsertAttachment(
-            [FromQuery(Name = "a")] string activityId, 
-            [FromQuery(Name = "ac")] string accountId, 
-            [FromQuery(Name = "c")] string companyId, 
-            [FromQuery(Name = "h")] string cloudHost, 
+            [FromQuery(Name = "a")] string activityId,
+            [FromQuery(Name = "ac")] string accountId,
+            [FromQuery(Name = "c")] string companyId,
+            [FromQuery(Name = "h")] string cloudHost,
             [FromBody] List<OnsightWorkspaceDocument> documents)
         {
             // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
@@ -146,8 +150,30 @@ namespace FSMExtension.Controllers
             var company = domainMapping.FsmAccount.FindCompany(companyId);
             if (company == null)
                 return NotFound();
-                
+
             var attachments = await FsmApiService.CreateAttachmentAsync(activityId, documents, company, cloudHost, domainMapping.OnsightApiKey);
+
+            return Ok(attachments);
+        }
+
+        [HttpPost]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Route("fsm/reports")]
+        public async Task<IActionResult> InsertReport(
+            [FromQuery(Name = "a")] string activityId,
+            [FromQuery(Name = "ac")] string accountId,
+            [FromQuery(Name = "c")] string companyId,
+            [FromQuery(Name = "h")] string cloudHost,
+            [FromBody] List<JobOfWorkFlow> jobsOfWorkFlow)
+        {
+            // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
+            var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
+
+            var company = domainMapping.FsmAccount.FindCompany(companyId);
+            if (company == null)
+                return NotFound();
+
+            var attachments = await FsmApiService.CreateFlowAttachmentForActivityAsync(activityId, jobsOfWorkFlow, company, cloudHost, domainMapping.OnsightApiKey);
 
             return Ok(attachments);
         }
@@ -177,8 +203,8 @@ namespace FSMExtension.Controllers
             if (company == null)
                 return NotFound();
 
-            var activityResult = GetActivity(cloudHost, accountId, companyId, activityId, company);
-            var activity = (activityResult.Result as OkObjectResult).Value as Dtos.FsmActivity;
+            var activityResult = await GetActivity(cloudHost, accountId, companyId, activityId);
+            var activity = (activityResult as OkObjectResult).Value as Dtos.FsmActivity;
             if (activity == null)
                 return NotFound();
 
@@ -208,6 +234,71 @@ namespace FSMExtension.Controllers
             return Ok(contacts);
         }
 
+        [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Route("fsm/activity-update")]
+        public async Task<IActionResult> UpdateActivity(
+            [FromQuery(Name = "h")] string cloudHost,
+            [FromQuery(Name = "a")] string accountId,
+            [FromQuery(Name = "c")] string companyId,
+            [FromQuery(Name = "av")] string activityId,
+            [FromQuery(Name = "w")] string selectedWorkFlowId)
+        {
+            var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
+            var company = domainMapping.FsmAccount.FindCompany(companyId);
+            if (company == null)
+                return NotFound();
+
+            var updateActivityWithSelectedOptionId = await FsmApiService.UpdateActivtySelectedOption(selectedWorkFlowId, cloudHost, company, activityId);
+
+            return Ok(updateActivityWithSelectedOptionId);
+        }
+
+        [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Route("fsm/import-jobs")]
+        public async Task<IActionResult> ImportFlowJobsAsync(
+            [FromQuery(Name = "h")] string cloudHost,
+            [FromQuery(Name = "a")] string accountId,
+            [FromQuery(Name = "c")] string companyId,
+            [FromQuery(Name = "av")] string activityId)
+        {
+            var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
+            var company = domainMapping.FsmAccount.FindCompany(companyId);
+            if (company == null)
+                return NotFound();
+            
+            var activityResult = await GetActivity(cloudHost, accountId, companyId, activityId);
+            var activity = (activityResult as OkObjectResult).Value as Dtos.FsmActivity;
+            if (activity == null)
+                return NotFound();
+
+            var allCompletedJobsForWorkOrderWithDetails = await OnsightFlowService.ImportJobsAsync(company, activity);
+
+            return Ok(allCompletedJobsForWorkOrderWithDetails);
+        }
+
+        [HttpGet]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Route("fsm/activity-workflows")]
+        public async Task<IActionResult> GetWorkflowsForActivity(
+            [FromQuery(Name = "h")] string cloudHost,
+            [FromQuery(Name = "a")] string accountId,
+            [FromQuery(Name = "c")] string companyId,
+            [FromQuery(Name = "av")] string activityId,
+            [FromQuery(Name = "email")] string fieldtechEmail)
+        {
+            var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
+            var company = domainMapping.FsmAccount.FindCompany(companyId);
+            if (company == null)
+               return NotFound();
+
+            var selectedWorkFlowId = await FsmApiService.GetActivityUdfAsync(cloudHost, company, domainMapping, activityId);
+            var getWorkflowsForActvitiy = await OnsightFlowService.AvailableWorkflowsAsync(company, selectedWorkFlowId, fieldtechEmail);
+
+            return Ok(getWorkflowsForActvitiy);
+        }
+
         /// <summary>
         /// Gets a Activity defined within the given CRM source object.
         /// 
@@ -219,33 +310,17 @@ namespace FSMExtension.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("fsm/activity")]
         public async Task<IActionResult> GetActivity(
-        [FromQuery(Name = "h")] string cloudHost,
-        [FromQuery(Name = "a")] string accountId,
-        [FromQuery(Name = "c")] string companyId,
-        [FromQuery(Name = "av")] string activityId)
+            [FromQuery(Name = "h")] string cloudHost,
+            [FromQuery(Name = "a")] string accountId,
+            [FromQuery(Name = "c")] string companyId,
+            [FromQuery(Name = "av")] string activityId)
         {
-            return await GetActivity(cloudHost, accountId, companyId, activityId, null);
-        }
-
-        private async Task<IActionResult> GetActivity(
-            string cloudHost,
-            string accountId,
-            string companyId,
-            string activityId,
-            CompanyInfo companyInfo)
-        {
-            // Look up FSM company (and its associated FSM auth token) based on 'accountId' + 'companyId'
             var domainMapping = await DomainRepository.GetFromFsmAccountIdAsync(accountId);
 
-            var company = companyInfo;
+            var company = domainMapping.FsmAccount.FindCompany(companyId);
             if (company == null)
-            {
-                company = domainMapping.FsmAccount.FindCompany(companyId);
-                if (company == null)
-                    return NotFound();
-            }
+                return NotFound();
 
-            // Get activity details based on 'crmSourceId'
             var activity = await FsmApiService.GetActivityAsync(cloudHost, company, activityId);
             if (activity == null)
                 return NotFound();

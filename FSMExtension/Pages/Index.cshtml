@@ -93,9 +93,23 @@
                 if (isLoggedIn()) {
                     if (id) {
                         const connections = await getConnections(id);
+
+                        let fieldTechEmail = '';
+                        connections.forEach(connection => {
+                            if (connection.role == 'FieldTech') {
+                                const [, paramString] = connection.connection.split('?');
+                                const urlParams = new URLSearchParams(paramString);
+                                fieldTechEmail = urlParams.get("from");
+                            }
+                        });
+                        $("#myWorkflows").empty();
+                        var workflows = await populateWorkflowsDropdown(id, fieldTechEmail);
                         showUI("showContacts", connections);
+                        if (workflows == undefined || workflows.length == 0) {
+                            showUI("showMessage", "Workflows unavailable", "flow");
+                        }
                         $("#workspaceAssets").empty();
-                        $("#contentImportWorkspace").show();
+                        $("#completedWorkflows").empty();
                     }
                     else {
                         showUI("showMessage", "No Activity selected.");
@@ -165,7 +179,7 @@
                 return urls;
             }
 
-            showUI("showMessage", "Loading contacts...");
+            showUI("showMessage", "Loading contacts...", "onsight");
 
             const response = await fetch("/api/v1/fsm/connections?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId + "&u=" + userId + "&from=" + fromEmail, {
                 method: "GET",
@@ -192,40 +206,49 @@
             return urls;
         }
 
-        function showUI(state, data) {
-            const login = document.querySelector("#login");
-            const noShell = document.querySelector("#noShell");
-            const message = document.querySelector("#message");
-            const content = document.querySelector("#content");
-            const contentImportWorkspace = document.querySelector("#contentImportWorkspace");
+        function showUI(state, data, destination) {
+            var login = $(".login");
+            var noShell = $(".noShell");
+            var message = $(".message");
+            var content = $(".content");
+
             if (!login) {
                 return;
             }
-
-            login.style.display = "none";
-            noShell.style.display = "none";
-            content.style.display = "none";
-            message.style.display = "none";
-            contentImportWorkspace.style.display = "none";
+            login.css('display', 'none');
+            noShell.css('display', 'none');
+            content.css('display', 'none');
+            message.css('display', 'none');
 
             switch (state) {
                 case "noShell":
-                    noShell.style.display = "block";
+                    noShell.css('display', 'block');
                     break;
                 case "loggedOut":
-                    login.style.display = "block";
+                    login.css('display', 'block');
                     idpLogin();
                     break;
                 case "showMessage":
-                    message.style.display = "block";
-                    message.getElementsByTagName("span")[0].innerHTML = data;
+                    message.css('display', 'block');
+                    if (destination != undefined && destination == 'flow') {
+                        if (data == 'Workflows unavailable') {
+                            $("#workSpaceContent").css('display', 'block');
+                            $("#contactsContent").css('display', 'block');
+                            $("#onsightMsg").parent().css('display', 'none');
+                        }
+                        $("#flowMsg").html(data);
+                    } else if (destination != undefined && destination == 'onsight') {
+                        $("#onsightMsg").html(data);
+                    } else {
+                        message.find('span').html(data);
+                    }
                     break;
                 case "showContacts":
                     {
                         const fieldTechs = data.filter(c => c.role === "FieldTech");
                         const experts = data.filter(c => c.role !== "FieldTech");
 
-                        content.style.display = "block";
+                        content.css('display', 'block');
                         updateContactsTable(document.getElementById("fieldTechsTable"), fieldTechs);
                         updateContactsTable(document.getElementById("expertsTable"), experts);
                         break;
@@ -253,6 +276,217 @@
                     }
                 })
                 .catch(reason => console.log("Failed to open connection to " + name + ": " + reason));
+        }
+
+        async function populateWorkflowsDropdown(activityId, fieldTechEmail) {
+            var availableWorkflows = [];
+            if (fieldTechEmail != '' || fieldTechEmail != undefined) {
+                availableWorkflows = await getWorkflowsForActivity(activityId, fieldTechEmail);
+                var option = '';
+                console.log(availableWorkflows);
+                if (availableWorkflows != undefined && availableWorkflows.length > 0) {
+                    for (const workflow of availableWorkflows) {
+                        if (!workflow.item3) {
+                            option += '<option value="' + workflow.item1 + '">' + workflow.item2 + '</option>';
+                        } else {
+                            option += '<option value="' + workflow.item1 + '" selected>' + workflow.item2 + '</option>';
+                        }
+                    };
+                }
+            }
+            $("#myWorkflows").append(option);
+            $('#myWorkflows').selectmenu("refresh");
+            return availableWorkflows;
+        }
+
+        async function getWorkflowsForActivity(activityId, fieldTechEmail) {
+            $("#launchFlowBtn").prop('disabled', false);
+            /* Forward query params on to API */
+            var availableWorkflows;
+            if (!isLoggedIn()) {
+                return availableWorkflows;
+            }
+
+            const cloudHost = sessionStorage.getItem("cloudHost");
+            const accountId = sessionStorage.getItem("accountId");
+            const companyId = sessionStorage.getItem("companyId");
+            const token = sessionStorage.getItem("token");
+
+            if (!activityId) {
+                showUI("showMessage", "No Activity selected.");
+                return urls;
+            }
+
+            showUI("showMessage", "Loading workflows...", "flow");
+
+            const response = await fetch("/api/v1/fsm/activity-workflows?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId + "&email=" + fieldTechEmail, {
+                method: "GET",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                },
+                cache: "no-cache"
+            });
+
+            if (response.status === 401) {
+                /* Forbidden; assume this means that our existing token is no longer valid and force a re-login. */
+                sessionStorage.removeItem("token");
+                sessionStorage.removeItem("fromEmail");
+                location.reload();
+            } else if (response.ok) {
+                availableWorkflows = await response.json();
+                if (availableWorkflows != undefined && availableWorkflows.length == 0) {
+                    $("#launchFlowBtn").prop('disabled', true);                    
+                }
+            } else {
+                console.error("Failed to fetch connections: " + response.statusText);                
+            }
+            
+            return availableWorkflows;
+        }
+
+        async function updateActivitySelectedWorkflow(event, ui) {
+            /* Forward query params on to API */
+            var selectedWorkflowId = "";
+            if (!isLoggedIn()) {
+                return selectedWorkflowId;
+            }
+
+            const cloudHost = sessionStorage.getItem("cloudHost");
+            const accountId = sessionStorage.getItem("accountId");
+            const companyId = sessionStorage.getItem("companyId");
+            const token = sessionStorage.getItem("token");
+            const activityId = sessionStorage.getItem("activityId");
+
+            if (!activityId) {
+                showUI("showMessage", "No Activity selected.");
+                return urls;
+            }
+
+            selectedWorkflowId = ui.item.value;
+
+            const response = await fetch("/api/v1/fsm/activity-update?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId + "&w=" + selectedWorkflowId, {
+                method: "GET",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                },
+                cache: "no-cache"
+            });
+
+            if (response.status === 401) {
+                /* Forbidden; assume this means that our existing token is no longer valid and force a re-login. */
+                sessionStorage.removeItem("token");
+                sessionStorage.removeItem("fromEmail");
+                location.reload();
+            } else if (response.ok) {
+                console.log("Workflow for Activity updated.");
+            } else {
+                console.error("Unabled to update Workflow for Activity: " + response.statusText);
+            }
+        }
+
+        async function importCompletedWorkflow() {
+            $("#importFlowBtn").prop('disabled', true);
+            /* Forward query params on to API */
+            var selectedWorkflowId = "";
+            if (!isLoggedIn()) {
+                return selectedWorkflowId;
+            }
+
+            let html = '';
+            let results = 0;
+            let element = $("#completedWorkflows");
+
+            const cloudHost = sessionStorage.getItem("cloudHost");
+            const accountId = sessionStorage.getItem("accountId");
+            const companyId = sessionStorage.getItem("companyId");
+            const token = sessionStorage.getItem("token");
+            const activityId = sessionStorage.getItem("activityId");
+
+            if (!activityId) {
+                showUI("showMessage", "No Activity selected.");
+                return urls;
+            }
+            
+            await fetch("/api/v1/fsm/import-jobs?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
+                method: "GET",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                },
+                cache: "no-cache"
+            })
+            .then(response => response.json())
+            .then(completedWorkflows => {
+                results = completedWorkflows.length;
+                html += `
+                        <div style="margin-bottom: 15px;"><div class="accordion">
+                        <h3>Completed Workflow Jobs (${results})</h3><div>`;
+
+                completedWorkflows.forEach(document => {
+                    html += generateFlowHtml(document);
+                });
+                html += '</div></div></div>';
+                element.html(html);
+
+                insertCompletedReport(completedWorkflows, activityId, accountId, companyId, cloudHost, token);
+
+            })
+            .catch(error => {
+                console.error("Failed to fetch completed workflows: " + error);
+                $("#importFlowBtn").prop('disabled', true);
+            })
+            .finally(() => {
+                var classes = {
+                    "ui-accordion-content": "padding-container"
+                };
+                $(".accordion").accordion({
+                    header: "> h3:not(.item)",
+                    heightStyle: "content",
+                    active: false,
+                    collapsible: true,
+                    classes: classes
+                });
+                $("#importFlowBtn").prop('disabled', false);
+                if (results == 0) {
+                    $(".accordion").addClass("ui-state-disabled");
+                }
+            });
+        }
+
+        async function insertCompletedReport(completedWorkflows, activityId, accountId, companyId, cloudHost, token) {
+            $("#importBtn").text("Downloading...");
+            await fetch('/api/v1/fsm/reports?a=' + activityId + "&ac=" + accountId + "&c=" + companyId + "&h=" + cloudHost, {
+                method: "POST",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(completedWorkflows),
+                cache: "no-cache"
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error("Failed to attach reports: " + response.status);
+                    }
+                })
+                .then(response => {
+                    if (response != undefined) {
+                        console.log(response.length + " Attachment(s) added into activity " + activityId);
+                    }
+                })
+                .finally(() => {
+                    $("#importBtn").text("Import Assets");
+                    $("#importBtn").prop('disabled', false);
+                });
         }
 
         async function getWorkspaceDocuments() {
@@ -306,10 +540,10 @@
                     } else {
                         results = asset.totalResults;
                         html += `
-                                            <div style="margin-bottom: 15px;"><div class="accordion">
-                                            <h3>Onsight Workspace Documents (${results})</h3><div>`;
+                                    <div style="margin-bottom: 15px;"><div class="accordion">
+                                    <h3>Onsight Workspace Documents (${results})</h3><div>`;
                         asset.documents.forEach(document => {
-                            html += generateHtml(document)
+                            html += generateWorkspaceHtml(document)
                         });
                         html += '</div></div></div>';
                         element.html(html);
@@ -323,7 +557,7 @@
                 })
                 .finally(() => {
                     var classes = {
-                        "ui-accordion-content": "padd2"
+                        "ui-accordion-content": "padding-container"
                     };
                     $(".accordion").accordion({
                         header: "> h3:not(.item)",
@@ -371,40 +605,139 @@
                 });
         }
 
-        function generateHtml(document) {
+        async function launchOnsightFlow() {
+            const cloudHost = sessionStorage.getItem("cloudHost");
+            const accountId = sessionStorage.getItem("accountId");
+            const companyId = sessionStorage.getItem("companyId");
+            const token = sessionStorage.getItem("token");
+            const activityId = sessionStorage.getItem("activityId");
+
+            await fetch("/api/v1/fsm/activity?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId, {
+                method: "GET",
+                mode: "cors",
+                credentials: "include",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                },
+                cache: "no-cache"
+            })
+                .then(response => {
+                    if (response.status === 401) {
+                        /* Forbidden; assume this means that our existing token is no longer valid and force a re-login. */
+                        sessionStorage.removeItem("token");
+                        sessionStorage.removeItem("fromEmail");
+                        location.reload();
+                        alert("There was a problem trying to import assets. Please try again.");
+                    } else if (response.ok) {
+                        return response.json();
+                    } else {
+                        console.error("Failed to fetch connections: " + response.statusText);
+                        $("#importBtn").prop('disabled', false);
+                    }
+                })
+                .then(activity => {
+                    if (!activity.code) {
+                        return;
+                    }
+                    var selectedWorkflowId = $('#myWorkflows').find(":selected").val();
+                    var url = 'https://web.flow.librestream.com/new/' + selectedWorkflowId + '?sapActivityCode=' + activity.code;
+
+                    window.open(url);
+                });
+        }
+        
+        function generateWorkspaceHtml(document) {
             const WORKSPACE_ROOT_URI = 'https://workspace.librestream.com/onsight/ui/#!/browse/';
             var downloadUrl = WORKSPACE_ROOT_URI + 'cogswellsprockets.com/workspace' + document.path;
-            var content = `<div class="accordion" id="accordianChild">
-                            <h3>${document.title}</h3>
-                            <div>
-                                <table>
-                                    <tr><td><b>Document Title</b></td></tr>
-                                    <tr><td>${document.title}</td></tr>
-                                    <tr><td><b>Download URL</b></td></tr>
-                                    <tr>
-                                        <td>
-                                            <a class="workspaceLink" target="_blank" href="${downloadUrl}">
-                                                Launch Onsite Workspace
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <tr><td><b>Onsight Connect Call</b></td></tr>
-                                    <tr><td>211007_210808_fieldtech</td></tr>
-                                    <tr><td><b>Created By</b></td></tr>
-                                    <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
-                                    <tr><td><b>Owner</b></td></tr>
-                                    <tr><td>${document.author}</td></tr>
-                                    <tr><td><b>Type</b></td></tr>
-                                    <tr><td>${document.type}</td></tr>
-                                    <tr><td><b>ID</b></td></tr>
-                                    <tr><td>${document.id}</td></tr>
-                                    <tr><td><b>Parent ID</b></td></tr>
-                                    <tr><td>${document.parentID}</td></tr>
-                                    <tr><td><b>External Metadata</b></td></tr>
-                                    <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
-                                </table>
-                            </div>
-                        </div>`;
+            var content = `
+                <div class="accordion" id="accordianChild">
+                    <h3>${document.title}</h3>
+                    <div>
+                        <table>
+                            <tr><td><b>Document Title</b></td></tr>
+                            <tr><td>${document.title}</td></tr>
+                            <tr><td><b>Download URL</b></td></tr>
+                            <tr>
+                                <td>
+                                    <a class="workspaceLink" target="_blank" href="${downloadUrl}">
+                                        Launch Onsite Workspace
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr><td><b>Created By</b></td></tr>
+                            <tr><td>${document.createdBy}, ${formatDateTime(document.createdOn)}</td></tr>
+                            <tr><td><b>Owner</b></td></tr>
+                            <tr><td>${document.author}</td></tr>
+                            <tr><td><b>Type</b></td></tr>
+                            <tr><td>${document.type}</td></tr>
+                            <tr><td><b>ID</b></td></tr>
+                            <tr><td>${document.id}</td></tr>
+                            <tr><td><b>Parent ID</b></td></tr>
+                            <tr><td>${document.parentID}</td></tr>
+                            <tr><td><b>External Metadata</b></td></tr>
+                            <tr><td>${JSON.stringify(document.externalMetadata)}</td></tr>
+                        </table>
+                    </div>
+                </div>`;
+            return content;
+        }
+
+        function generateFlowHtml(completedWorkflow) {
+            var content = `
+                <div class="accordion" id="accordianChild">
+                <h3>${completedWorkflow.metadata.jobTitle}</h3>
+                <div>
+                    <table style='width:100%'>
+                        <tr><td><b>Title</b></td></tr>
+                        <tr><td>${completedWorkflow.metadata.jobTitle}</td></tr>
+                        <tr><td><b>Workflow Report</b></td></tr>
+                        <tr>
+                            <td>
+                                <a class="workspaceLink" target="_blank" href="${completedWorkflow.completedReportURL}">
+                                    Download
+                                </a>
+                            </td>
+                        </tr>
+                        <tr><td><b>Updated</b></td></tr>
+                        <tr><td>${formatDateTime(completedWorkflow.metadata.updated)}</td></tr>
+                        <tr><td><b>Active User</b></td></tr>
+                        <tr><td>${completedWorkflow.metadata.username}</td></tr>
+                        <tr><td><b>Workflow</b></td></tr>
+                        <tr><td>${completedWorkflow.metadata.workflowName}</td></tr>
+                        <tr><td><b>Status</b></td></tr>
+                        <tr><td>${completedWorkflow.metadata.status}</td></tr>
+                        <tr><td><div class="accordion">
+                            <h3>Completed Steps</h3>
+                            <table style='width:100%'>`;
+
+            if (completedWorkflow.completedSteps != null) {
+                completedWorkflow.completedSteps.forEach(step => {
+                    if (step.reportStep != null) {
+                        content += `<tr><td><b>Step Title: </b>${step.reportStep.stepTitle}</td></tr>
+                                <tr><td><b>Completed By: </b>${step.reportStep.userName}</td></tr>
+                                <tr><td><b>Number of Steps: </b>${step.reportStep.steps.length}</td></tr>
+                                <tr><td><b>Duration: </b>${timeDiffCalc(new Date(step.reportStep.completed), new Date(step.reportStep.started))}</td></tr>
+                                `;
+                        step.reportStep.steps.forEach(step => {
+                            content += `<tr><td><b>Description: </b>${step.stepDescription}</td></tr>`;
+                            content += `<tr><td><b>${step.stepTitle}: </b>${JSON.stringify(step.values)}</td></tr>`;
+                        });
+                        content += `<td style="border-bottom: 2px inset;"></td>`;
+                    }
+                    if (step.singleStep != null) {
+                        content += `<tr><td><b>Step Title: </b>${step.singleStep.stepTitle}</td></tr>
+                            <tr><td><b>Completed By: </b>${step.singleStep.userName}</td></tr>
+                            <tr><td><b>Duration: </b>${timeDiffCalc(new Date(step.singleStep.completed), new Date(step.singleStep.started))}</td></tr>
+                            <tr><td><b>Description: </b>${step.singleStep.stepDescription}</td></tr>
+                            <tr><td><b>Input: </b>${JSON.stringify(step.singleStep.values)}</td></tr>`;
+
+                        content += `<td style="border-bottom: 2px inset;"></td>`;
+                    }
+                });
+            }
+
+            content += `</table></div></td></tr></table></div></div>`;
+
             return content;
         }
 
@@ -412,6 +745,24 @@
             var m = new Date(value);
             var dateString = (m.getUTCMonth() + 1) + "/" + m.getUTCDate() + "/" + m.getUTCFullYear() + " " + m.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
             return dateString;
+        }
+
+        function timeDiffCalc(dateFuture, dateNow) {
+            let value = Math.abs(dateFuture - dateNow) / 1000;
+            const sec = parseInt(value, 10);
+            let hours = Math.floor(sec / 3600);
+            let minutes = Math.floor((sec - (hours * 3600)) / 60);
+            let seconds = sec - (hours * 3600) - (minutes * 60);
+            if (hours < 10) {
+                hours = "0" + hours;
+            }
+            if (minutes < 10) {
+                minutes = "0" + minutes;
+            }
+            if (seconds < 10) {
+                seconds = "0" + seconds;
+            }
+            return hours + ':' + minutes + ':' + seconds;
         }
 
         function updateContactsTable(table, contacts) {
@@ -446,10 +797,10 @@
             }
         }
 
-        $(function () {
+        $(function() {
             var classes = {
                 "ui-selectmenu-text": "font",
-                "ui-selectmenu-button": "buttonPadd"
+                "ui-selectmenu-button": "padding-button"
             };
             $("#myWorkflows").selectmenu({
                 classes: classes
@@ -460,20 +811,22 @@
                     "ui-menu-item": "font"
                 }
             });
-
-            $("button").button().addClass("buttonPadd");
+            $("#myWorkflows").on("selectmenuselect", function (event, ui) {
+                updateActivitySelectedWorkflow(event, ui);
+            });
+            $("button").button().addClass("padding-button");
         });
 
-        $(function () {
+        $(function() {
             var icons = {
                 header: "ui-icon-plus",
                 activeHeader: "ui-icon-minus"
             };
             var classes = {
-                "ui-accordion-header": "white",
-                "ui-accordion-header-collapsed": "white",
-                "ui-accordion-header-active": "white",
-                "ui-accordion-content": "padd font transparent"
+                "ui-accordion-header": "background-white",
+                "ui-accordion-header-collapsed": "background-white",
+                "ui-accordion-header-active": "background-white",
+                "ui-accordion-content": "padding font transparent"
             };
             $("#accordionMain").accordion({
                 icons: icons,
@@ -491,16 +844,16 @@
             <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
             <div class="heading center">REMOTE EXPERT ASSISTANCE</div>
 
-            <div id="login" style="display: none; padding-top: 50px;">
+            <div class="login" style="display: none; padding-top: 50px;">
                 <span class="center">Loading...</span>
             </div>
-            <div id="noShell" class="center" style="display: none;">
+            <div class="noShell center" style="display: none;">
                 <p>Extension needs to run inside Shell</p>
             </div>
-            <div id="message" class="center" style="display: none; padding-top: 50px;">
-                <span>&nbsp;</span>
+            <div class="message center" style="display: none; padding-top: 50px;">
+                <span id="onsightMsg">&nbsp;</span>
             </div>
-            <div id="content" style="display: none;">
+            <div class="content" id="contactsContent" style="display: none;">
                 <div style="padding: 0px 0px 10px 0px;">Select a link below to initiate an Onsight Connect call with individuals assigned to this activity.</div>
 
                 <div class="subheading">ASSIGNED FIELD RESOURCE(S)</div>
@@ -512,7 +865,7 @@
                     <tr></tr>
                 </table>
             </div>
-            <div id="contentImportWorkspace" style="display: none;">
+            <div class="content" id="workSpaceContent" style="display: none;">
                 <div style="display: flex;">
                     <div style="width: 33%;"></div>
                     <div style="width: 33%;">
@@ -533,19 +886,32 @@
             <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
             <div class="heading center">ONSIGHT FLOW</div>
 
-            <label for="myWorkflows">Workflows:</label>
-            <select name="myWorkflows" id="myWorkflows">
-                <option>1 Workflow One</option>
-                <option>2 Workflow Too</option>
-                <option selected="selected">3 Workflow Three</option>
-                <option>Four Work Flow 4</option>
-                <option>5 Workflow FIVE</option>
-            </select>
+            <div class="login" style="display: none; padding-top: 50px;">
+                <span class="center">Loading...</span>
+            </div>
+            <div class="noShell center" style="display: none;">
+                <p>Extension needs to run inside Shell</p>
+            </div>
+            <div class="message center" style="display: none; padding-top: 50px;">
+                <span id="flowMsg">&nbsp;</span>
+            </div>
 
-            <br />
-            <br />
-            <button class="font">Start Workflow</button>
-            <button class="font">Import Completed Workflows</button>
+            <div class="content" style="display:none">
+                <div style="padding: 0px 0px 10px 0px;">
+                    Assign a Workflow for the Activity to be launched here or from mobile, and Import Completed Workflows. The Workflow reports will be added as Activity attachments.
+                </div>
+
+                <div class="subheading">WORKFLOWS:</div>
+                <select name="myWorkflows" id="myWorkflows">
+                </select>
+                <div style="padding-top:15px;"></div>
+
+                <button class="font" id="launchFlowBtn" onclick="launchOnsightFlow()">Begin Workflow</button>
+                <button class="font" id="importFlowBtn" onclick="importCompletedWorkflow()">Import Completed Workflows</button>
+
+                <div style="padding-top:15px;"></div>
+                <div id="completedWorkflows"></div>
+            </div>
         </div>
     </div>
 

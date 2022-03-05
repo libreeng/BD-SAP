@@ -7,6 +7,9 @@ namespace FSMExtension.Models
         [JsonProperty("remoteExpert")]
         public UdfNames RemoteExpert { get; set; }
 
+        [JsonProperty("selectedWorkFlow")]
+        public string SelectedWorkFlow { get; set; }
+
         public class UdfNames
         {
             [JsonProperty("email")]

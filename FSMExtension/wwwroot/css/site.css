@@ -59,7 +59,7 @@
     text-decoration: underline;
 }
 
-.white {
+.background-white {
     background: none;
     background-color: #ffffff;
 }
@@ -69,26 +69,25 @@
     background-color: #ffffff;
 }
 
-.padd {
+.padding {
     padding: 0px 10px !important;
     min-height: 350px !important;
 }
 
-.buttonPadd {
+.padding-button {
     padding: 2px 2px !important;
 }
 
-.padd2 {
+.padding-container {
     padding: 0 !important;
     background-color: #ffffff !important;
     color: #000000 !important;
 }
 
-.padd2 a {
+.padding-container a {
     color: #000000 !important;
     text-decoration: underline;
 }
-
 
 .left {
     text-align: left !important;
