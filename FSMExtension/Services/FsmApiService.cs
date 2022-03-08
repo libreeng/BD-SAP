@@ -404,20 +404,23 @@ namespace FSMExtension.Services
         public async Task<string> UpdateActivtySelectedOption(string selectedWorkflowOptionId, string cloudHost, CompanyInfo company, string activityId)
         {
             var responseString = string.Empty;
-            var meta = new Meta() {
+            var meta = new Meta()
+            {
                 ExternalId = "selectedWorkflowId"
             };
-            var udfValue = new UdfValue() {
+            var udfValue = new UdfValue()
+            {
                 Meta = meta,
                 Value = selectedWorkflowOptionId
             };
             var udfValues = new List<UdfValue>();
             udfValues.Add(udfValue);
-            var udf = new fsmUdf() { 
+            var udf = new fsmUdf()
+            {
                 UdfValues = udfValues
-            }; 
+            };
 
-            var queryApiRequest = new Uri("https://eu.coresuite.com/api/data/v4/Activity/" + activityId + "?dtos=Activity."+ ActivityVersion + "&forceUpdate=true");
+            var queryApiRequest = new Uri("https://eu.coresuite.com/api/data/v4/Activity/" + activityId + "?dtos=Activity." + ActivityVersion + "&forceUpdate=true");
             var body = JsonConvert.SerializeObject(udf);
             var buffer = Encoding.UTF8.GetBytes(body);
             var byteContent = new ByteArrayContent(buffer);

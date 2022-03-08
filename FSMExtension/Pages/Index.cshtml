@@ -283,7 +283,6 @@
             if (fieldTechEmail != '' || fieldTechEmail != undefined) {
                 availableWorkflows = await getWorkflowsForActivity(activityId, fieldTechEmail);
                 var option = '';
-                console.log(availableWorkflows);
                 if (availableWorkflows != undefined && availableWorkflows.length > 0) {
                     for (const workflow of availableWorkflows) {
                         if (!workflow.item3) {
@@ -314,7 +313,7 @@
 
             if (!activityId) {
                 showUI("showMessage", "No Activity selected.");
-                return urls;
+                return availableWorkflows;
             }
 
             showUI("showMessage", "Loading workflows...", "flow");
@@ -361,13 +360,13 @@
 
             if (!activityId) {
                 showUI("showMessage", "No Activity selected.");
-                return urls;
+                return selectedWorkflowId;
             }
 
             selectedWorkflowId = ui.item.value;
 
             const response = await fetch("/api/v1/fsm/activity-update?h=" + cloudHost + "&a=" + accountId + "&c=" + companyId + "&av=" + activityId + "&w=" + selectedWorkflowId, {
-                method: "GET",
+                method: "PATCH",
                 mode: "cors",
                 credentials: "include",
                 headers: {
@@ -811,16 +810,16 @@
                     "ui-menu-item": "font"
                 }
             });
-            $("#myWorkflows").on("selectmenuselect", function (event, ui) {
-                updateActivitySelectedWorkflow(event, ui);
+            $("#myWorkflows").on("selectmenuselect", async function (event, ui) {
+                await updateActivitySelectedWorkflow(event, ui);
             });
             $("button").button().addClass("padding-button");
         });
 
         $(function() {
             var icons = {
-                header: "ui-icon-plus",
-                activeHeader: "ui-icon-minus"
+                header: "ui-icon-caret-1-s",
+                activeHeader: "ui-icon-caret-1-n"
             };
             var classes = {
                 "ui-accordion-header": "background-white",
@@ -842,7 +841,7 @@
         <h3>Onsight Connect</h3>
         <div>
             <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
-            <div class="heading center">REMOTE EXPERT ASSISTANCE</div>
+            <div class="heading center"></div>
 
             <div class="login" style="display: none; padding-top: 50px;">
                 <span class="center">Loading...</span>
@@ -884,7 +883,7 @@
         <h3>Onsight Flow</h3>
         <div>
             <img src="~/images/onsight-logo.svg" width="150" height="70" class="center" style="width: 150px; height: 70px;" />
-            <div class="heading center">ONSIGHT FLOW</div>
+            <div class="heading center"></div>
 
             <div class="login" style="display: none; padding-top: 50px;">
                 <span class="center">Loading...</span>

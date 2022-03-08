@@ -234,7 +234,7 @@ namespace FSMExtension.Controllers
             return Ok(contacts);
         }
 
-        [HttpGet]
+        [HttpPatch]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [Route("fsm/activity-update")]
         public async Task<IActionResult> UpdateActivity(

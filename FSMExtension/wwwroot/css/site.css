@@ -84,11 +84,6 @@
     color: #000000 !important;
 }
 
-.padding-container a {
-    color: #000000 !important;
-    text-decoration: underline;
-}
-
 .left {
     text-align: left !important;
 }
@@ -112,8 +107,23 @@
     background-color: transparent;
 }
 
-#accordionMain a {
-    color: #ffffff;
+#contactsContent a {
+    color: #ffffff !important;
+}
+
+#contactsContent a:hover {
+    color: #0056b3 !important;
+    text-decoration: underline !important;
+}
+
+a {
+    color: #00a3e0 !important;
+    text-decoration: underline !important;
+}
+
+a:hover {
+    color: #003963 !important;
+    text-decoration: underline !important;
 }
 
 #accordianChild .ui-accordion-header {
