@@ -34,7 +34,7 @@ namespace FSMExtension.Services
             var listOfWorkFlows = await GetAllWorkFlows(token);
             var assignedWorkFlows = listOfWorkFlows.Where(lwf => lwf.liveObjectIds != null && lwf.activeVersionId != null);
             var unassignedWorkFlows = listOfWorkFlows.Where(lwf => (lwf.liveObjectIds == null || lwf.liveObjectIds.Count == 0) && lwf.activeVersionId != null);
-            var validWorkFlowsForFieldTech = assignedWorkFlows.Where(lwf => lwf.liveObjectIds.Contains(userIdForAssignedFieldTech.userId ?? string.Empty)).ToList();
+            var validWorkFlowsForFieldTech = assignedWorkFlows.Where(lwf => lwf.liveObjectIds.Contains(userIdForAssignedFieldTech?.userId ?? string.Empty)).ToList();
 
             validWorkFlowsForFieldTech.AddRange(unassignedWorkFlows.ToList());
 
