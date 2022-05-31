@@ -185,7 +185,7 @@ namespace FSMExtension.Services
         private async static Task<List<JobOfWorkFlow>> GetJobsOfWorkflow(string token)
         {
             var jobsOfWorkFlow = new List<JobOfWorkFlow>();
-            var requestUri = new Uri("https://gateway.flow.librestream.com/jobs/v1/");
+            var requestUri = new Uri("https://gateway.flow.librestream.com/jobs/v1/?limit=1000");
             var message = new HttpRequestMessage(HttpMethod.Get, requestUri);
             message.Headers.Add("Authorization", string.Format("Bearer {0}", token));
 
