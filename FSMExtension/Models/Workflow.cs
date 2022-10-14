@@ -29,12 +29,24 @@ namespace FSMExtension.Models
         public string authorId { get; set; }
         public string authorName { get; set; }
         public string versionNotes { get; set; }
-        public List<string> approvals { get; set; }
+        //public List<string> approvals { get; set; }
         public string mode { get; set; }
         public bool isArchived { get; set; }
         public string downloadSignature { get; set; }
         public DateTime downloadSignatureExpiry { get; set; }
+        //public Approvals approvals { get; set; }
     }
+
+    public class Approvals
+    {
+        public string comments { get; set; }
+        public string userId { get; set; }
+        public string username { get; set; }
+        public string name { get; set; }
+        public string state { get; set; }
+        public DateTime updated { get; set; }
+    }
+
 
     public class FlowUser
     {

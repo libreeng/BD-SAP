@@ -638,8 +638,10 @@
                     if (!activity.code) {
                         return;
                     }
+                    var metaData = '{ "sapActivityCode": "' + activity.code + '" }';
+                    var urlEncode = encodeURIComponent(metaData);
                     var selectedWorkflowId = $('#myWorkflows').find(":selected").val();
-                    var url = 'https://web.flow.librestream.com/new/' + selectedWorkflowId + '?sapActivityCode=' + activity.code;
+                    var url = 'https://flow.onsight.librestream.com/new/' + selectedWorkflowId + '?from=new&metadata=' + urlEncode;
 
                     window.open(url);
                 });

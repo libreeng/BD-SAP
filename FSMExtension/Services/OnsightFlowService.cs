@@ -33,13 +33,13 @@ namespace FSMExtension.Services
             var userIdForAssignedFieldTech = allUsersForTeam.Where(aut => aut.emailAddress == fieldtechEmail).FirstOrDefault();
             var listOfWorkFlows = await GetAllWorkFlows(token);
             var assignedWorkFlows = listOfWorkFlows.Where(lwf => lwf.liveObjectIds != null && lwf.activeVersionId != null);
-            var unassignedWorkFlows = listOfWorkFlows.Where(lwf => (lwf.liveObjectIds == null || lwf.liveObjectIds.Count == 0) && lwf.activeVersionId != null);
-            var validWorkFlowsForFieldTech = assignedWorkFlows.Where(lwf => lwf.liveObjectIds.Contains(userIdForAssignedFieldTech?.userId ?? string.Empty)).ToList();
-
-            validWorkFlowsForFieldTech.AddRange(unassignedWorkFlows.ToList());
-
+            var unassignedWorkFlows = listOfWorkFlows.Where(lwf => (lwf.liveObjectIds == null || lwf.liveObjectIds.Count == 0));
+            
+            var assignableWorkFlowsForFieldTech = await GetAssignableWorkFlows(token, userIdForAssignedFieldTech?.userId ?? string.Empty, assignedWorkFlows.ToList());
+            assignableWorkFlowsForFieldTech.AddRange(unassignedWorkFlows.ToList());
+            
             var validWFs = new List<Tuple<string, string, bool>>();
-            foreach (var workFlow in validWorkFlowsForFieldTech)
+            foreach (var workFlow in assignableWorkFlowsForFieldTech)
             {
                 var validWf = new Tuple<string, string, bool>(workFlow.workflowId, workFlow.name, selectedWorkFlowId == workFlow.workflowId);
                 validWFs.Add(validWf);
@@ -66,6 +66,44 @@ namespace FSMExtension.Services
             return responseString;
         }
 
+        private async static Task<List<WorkFlow>> GetAssignableWorkFlows(string token, string userId, List<WorkFlow> workFlows)
+        {
+            var assignableWorkFlows = new List<WorkFlow>();
+            foreach (var workFlow in workFlows)
+            {
+                if (workFlow.liveObjectIds.Contains(userId))
+                {
+                    assignableWorkFlows.Add(workFlow);
+                }
+                else
+                {
+                    // check if workflowId is within a group
+                    foreach (var liveObjectId in workFlow.liveObjectIds)
+                    {
+                        var requestUri = new Uri("https://accounts.flow.librestream.com/api/group/" + liveObjectId);
+                        var message = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                        message.Headers.Add("Authorization", string.Format("Bearer {0}", token));
+
+                        var httpClient = new HttpClient();
+
+                        var response = await httpClient.SendAsync(message);
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var responseString = await response.Content.ReadAsStringAsync();
+                            if (responseString.Contains(userId))
+                            {
+                                assignableWorkFlows.Add(workFlow);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return assignableWorkFlows;
+        }
+
         private async static Task<List<WorkFlow>> GetAllWorkFlows(string token)
         {
             var listWorkflows = new List<WorkFlow>();
@@ -84,7 +122,7 @@ namespace FSMExtension.Services
                 listWorkflows = JsonSerializer.Deserialize<List<WorkFlow>>(responseString);
             }
 
-            return listWorkflows;
+            return listWorkflows.Where(wf => !wf.isArchived).ToList();
         }
 
         private async static Task<List<FlowUser>> GetUsersForTeam(string token)
@@ -156,7 +194,7 @@ namespace FSMExtension.Services
             {
                 var responseString = await response.Content.ReadAsStringAsync();
 
-                reportResponse = JsonSerializer.Deserialize<ReportResponse>(responseString);                
+                reportResponse = JsonSerializer.Deserialize<ReportResponse>(responseString);
             }
             return reportResponse;
         }
