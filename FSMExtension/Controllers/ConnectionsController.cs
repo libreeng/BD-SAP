@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -77,7 +78,7 @@ namespace FSMExtension.Controllers
                 return NotFound();
 
             // Generate metadata structure based on CrmSource and 'meta' string
-            var metadata = FsmMetadataBuilder.Build(meta);
+            var metadata = FsmMetadataBuilder.Build(WebUtility.UrlDecode(meta));
 
             // Fetch and return Onsight Connect URL using APIKey + 'from' + 'to' + metadata struct
             var platform = Utils.DetectPlatform(Request);
