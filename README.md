@@ -83,7 +83,7 @@
     https://{fsmHost}/admin/accounts/{accountId}/companies/{companyId}/serviceWorkflows
    2) The new Workflow Step should be placed in an appropriate location within the Workflow and be connected to any succeeding steps. The image below illustrates an example of a new "Onsight Connect" Workflow Step inserted into a default Workflow, after the "work" step and before the "checkout" step:
 
-         ![Edit Service Workflow](../images/edit-service-workflow.png)
+         ![Edit Service Workflow](FSMExtension/wwwroot/images/edit-service-workflow.png)
 
    3) The new Workflow Step should be set to a Screen Type of "External application".
    4) The Workflow Step's Configuration should be set to one of the two following options, depending on where the designated Remote Expert information is located:

@@ -1,4 +1,5 @@
 ﻿using FSMExtension.Models;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Net.Http;
@@ -27,12 +28,16 @@ namespace FSMExtension.Services
     /// </summary>
     public class OnsightConnectService : IOnsightConnectService
     {
-        public OnsightConnectService(HttpClient httpClient)
+        public OnsightConnectService(HttpClient httpClient, ILogger<OnsightConnectService> logger)
         {
             HttpClient = httpClient;
+            Logger = logger;
         }
 
         private HttpClient HttpClient { get; }
+
+        private ILogger<OnsightConnectService> Logger { get; }
+
 
         public async Task<string> GetUriAsync(OnsightConnectPlatform platform, string apiKey, string from, string to, object metadata)
         {
@@ -40,7 +45,10 @@ namespace FSMExtension.Services
             var response = await HttpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
+            {
+                Logger.LogError("Failed to get Onsight Connect call URI: ({StatusCode}) - {Message}", response.StatusCode, response.ReasonPhrase); 
                 return null;
+            }
 
             var uriString = await response.Content.ReadAsStringAsync();
             if (!string.IsNullOrEmpty(uriString))
