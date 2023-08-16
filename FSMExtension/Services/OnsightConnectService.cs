@@ -46,7 +46,8 @@ namespace FSMExtension.Services
 
             if (!response.IsSuccessStatusCode)
             {
-                Logger.LogError("Failed to get Onsight Connect call URI: ({StatusCode}) - {Message}", response.StatusCode, response.ReasonPhrase); 
+                var ocErrorBody = await response.Content.ReadAsStringAsync();
+                Logger.LogError("Failed to get Onsight Connect call URI: ({StatusCode}) - {Message}", response.StatusCode, ocErrorBody);
                 return null;
             }
 
