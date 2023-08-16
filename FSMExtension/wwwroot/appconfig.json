@@ -2,11 +2,11 @@
     "name": "Onsight Connect for SAP",
     "provider": "Librestream Technologies, Inc.",
     "description": "Enable users to initiate a remote expert assistance session with pre-assigned resources directly from Field Service Management Web or Mobile.",
+    "optimalHeight": "480",
     "version": "1.3.0",
     "icon": "https://fsm-extension-app.azurewebsites.net/images/onsight-logo.svg",
     "useShellSDK": true,
-    "helmChartVersion": "3.4.0",
     "parameters": [],
-    "optimalHeight": 350,
-    "outletPositions": [ "WFM_ACTIVITY_SIDEBAR" ]
+    "outletPositions": [ "WFM_ACTIVITY_SIDEBAR" ],
+    "helmChartVersion": "3.4.0"
 }
