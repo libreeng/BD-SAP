@@ -24,12 +24,12 @@ namespace FSMExtension.Repositories.Cosmos
             if (string.IsNullOrEmpty(userEmail))
                 return null;
 
-            if (!Utils.ExtractEmailParts(userEmail, out var userName, out var onsightDomain))
+            if (!Utils.ExtractEmailParts(userEmail, out var userName, out var emailDomain))
                 return null;
 
             DomainMapping mapping = null;
-            var queryDef = new QueryDefinition("SELECT * FROM domain_mapping dm WHERE dm.onsightDomain = @domain AND ARRAY_CONTAINS(dm.emailUsers, @userName)")
-                .WithParameter("@domain", onsightDomain)
+            var queryDef = new QueryDefinition("SELECT * FROM domain_mapping dm WHERE (dm.emailDomain = @emailDomain OR dm.onsightDomain = @emailDomain) AND ARRAY_CONTAINS(dm.emailUsers, @userName)")
+                .WithParameter("@emailDomain", emailDomain)
                 .WithParameter("@userName", userName);
 
             using var iter = DomainMappings.GetItemQueryIterator<DomainMapping>(queryDef);

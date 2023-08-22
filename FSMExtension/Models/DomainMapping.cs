@@ -20,10 +20,13 @@ namespace FSMExtension.Models
         [JsonProperty("teamName")]
         public string TeamName { get; set; }
 
+        [JsonProperty("emailDomain")]
+        public string EmailDomain { get; set; }
+
         /// <summary>
         /// The email user names of all registered users of the extension.
-        /// This assumes that the OnsightDomain is the same as each user's
-        /// email domain.
+        /// This will assume each user's email domain matches EmailDomain
+        /// (if set) else assumes their email domain == their OPM domain.
         /// </summary>
         [JsonProperty("emailUsers")]
         public IEnumerable<string> EmailUsers { get; set; }
